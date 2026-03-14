@@ -145,8 +145,38 @@ class InferencePipeline {
         
         await MainActor.run {
             recording.rawTranscript = finalTranscript
+            self.progress = 0.95
+            self.currentStep = "Booting Inference Agent..."
+        }
+        
+        // --- STEP 4: LLM SUMMARY (MLX) ---
+        do {
+            var llm: LLMService? = LLMService()
+            let agentOutput = try await llm!.generateSummary(transcript: finalTranscript) { step, prog in
+                Task { @MainActor in
+                    self.currentStep = step
+                    self.progress = prog
+                }
+            }
+            llm = nil
+            
+            await MainActor.run {
+                recording.meetingNotes = agentOutput.meetingNotes
+                recording.actionItems = agentOutput.actionItems
+                
+                // Serialize Node UI Tree back to SwiftData blobs
+                if let jsonData = try? JSONEncoder().encode(agentOutput.mindMapNodes) {
+                    recording.mindMapJSON = jsonData
+                }
+            }
+            
+        } catch {
+            print("LLM Agent Failed: \(error)")
+        }
+        
+        await MainActor.run {
             self.progress = 1.0
-            self.currentStep = "Saving Note..."
+            self.currentStep = "Saving Intelligence..."
         }
         
         // Save to SwiftData

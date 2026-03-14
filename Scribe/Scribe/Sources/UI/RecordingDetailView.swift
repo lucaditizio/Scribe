@@ -12,8 +12,13 @@ struct RecordingDetailView: View {
     @State private var inferencePipeline = InferencePipeline()
     
     // UI State
-    @State private var selectedTab = "Transcript"
-    let tabs = ["Transcript", "Summary", "Mind Map"]
+    @State private var selectedTab = "Summary"
+    let tabs = ["Summary", "Transcript", "Mind Map"]
+    
+    // Rename Speaker State
+    @State private var showingRenameAlert = false
+    @State private var speakerToRename = ""
+    @State private var newSpeakerName = ""
     
     var body: some View {
         VStack(spacing: 0) {
@@ -72,28 +77,62 @@ struct RecordingDetailView: View {
             .padding(.bottom, 16)
             
             ScrollView {
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 20) {
                     if inferencePipeline.isProcessing {
-                        ProgressHUD(step: inferencePipeline.currentStep, progress: inferencePipeline.progress)
+                        if #available(iOS 18.0, *) {
+                            AgentGeneratingView(progressText: $inferencePipeline.currentStep, progressValue: $inferencePipeline.progress)
+                                .frame(height: 400)
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                        } else {
+                            ProgressHUD(step: inferencePipeline.currentStep, progress: inferencePipeline.progress)
+                        }
                     } else if selectedTab == "Transcript" {
                         if let transcript = recording.rawTranscript, !transcript.isEmpty {
-                            Text(transcript)
-                                .font(.body)
-                                .lineSpacing(6)
+                            TranscriptInteractiveView(
+                                transcript: transcript,
+                                onRenameSpeaker: { speaker in
+                                    speakerToRename = speaker
+                                    newSpeakerName = ""
+                                    showingRenameAlert = true
+                                }
+                            )
+                            .padding()
+                        } else {
+                            ContentUnavailableView("No Transcript", systemImage: "text.bubble", description: Text("Tap Transcribe to start."))
+                        }
+                    } else if selectedTab == "Summary" {
+                        if let notes = recording.meetingNotes, !notes.isEmpty {
+                            VStack(alignment: .leading, spacing: 24) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("📝 Meeting Notes")
+                                        .font(.title3.weight(.bold))
+                                    Text(notes)
+                                        .font(.body)
+                                        .lineSpacing(4)
+                                }
+                                
+                                if let actions = recording.actionItems {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("✅ Action Items")
+                                            .font(.title3.weight(.bold))
+                                        Text(actions)
+                                            .font(.body)
+                                            .lineSpacing(4)
+                                    }
+                                }
+                            }
+                            .padding()
+                        } else {
+                            ContentUnavailableView("No Summary", systemImage: "doc.text.magnifyingglass", description: Text("Generate a transcript to use Llama-3.2."))
+                        }
+                    } else if selectedTab == "Mind Map" {
+                        if let mindMapData = recording.mindMapJSON,
+                           let nodes = try? JSONDecoder().decode([MindMapNode].self, from: mindMapData) {
+                            MindMapView(nodes: nodes)
                                 .padding()
                         } else {
-                            ContentUnavailableView(
-                                "No Transcript",
-                                systemImage: "text.bubble",
-                                description: Text("Tap Transcribe to convert this audio to text.")
-                            )
+                            ContentUnavailableView("No Mind Map", systemImage: "network", description: Text("Generate a transcript to extract JSON tree nodes."))
                         }
-                    } else {
-                         ContentUnavailableView(
-                            "Coming Soon",
-                            systemImage: "wand.and.stars",
-                            description: Text("The \(selectedTab) view will be implemented in Phase 3.")
-                        )
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -126,6 +165,20 @@ struct RecordingDetailView: View {
             if audioPlayer.isPlaying {
                 audioPlayer.togglePlayback()
             }
+        }
+        .alert("Rename Participant", isPresented: $showingRenameAlert) {
+            TextField("New Name", text: $newSpeakerName)
+                .textInputAutocapitalization(.words)
+            Button("Cancel", role: .cancel) { }
+            Button("Rename") {
+                if !newSpeakerName.trimmingCharacters(in: .whitespaces).isEmpty {
+                    // Globally replace the speaker name in the String
+                    let updatedTranscript = recording.rawTranscript?.replacingOccurrences(of: speakerToRename, with: newSpeakerName)
+                    recording.rawTranscript = updatedTranscript
+                }
+            }
+        } message: {
+            Text("Enter a real name for \(speakerToRename). This will update the entire transcript.")
         }
     }
 }
@@ -195,5 +248,135 @@ struct ProgressHUD: View {
         .background(Color.secondary.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .padding()
+    }
+}
+
+// Minimal recursive MindMap drawing using JSON Structure
+struct MindMapView: View {
+    let nodes: [MindMapNode]
+    var depth: Int = 0
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(nodes, id: \.id) { node in
+                HStack(alignment: .top) {
+                    // Tree branch drawing
+                    if depth > 0 {
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.3))
+                            .frame(width: 2, height: 24)
+                            .padding(.leading, 12)
+                        
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.3))
+                            .frame(width: 16, height: 2)
+                            .offset(y: 11)
+                    }
+                    
+                    VStack(alignment: .leading) {
+                        Text(node.text)
+                            .font(depth == 0 ? .headline : .subheadline)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(depth == 0 ? Color(Theme.primaryColor).opacity(0.8) : Color.secondary.opacity(0.15))
+                            .foregroundColor(depth == 0 ? .white : .primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        
+                        // Recurse down the tree
+                        if let children = node.children, !children.isEmpty {
+                            MindMapView(nodes: children, depth: depth + 1)
+                                .padding(.leading, 8)
+                        }
+                    }
+            }
+        }
+    }
+}
+
+// Interactive Transcript View to isolate Speaker Tags
+struct TranscriptInteractiveView: View {
+    let transcript: String
+    let onRenameSpeaker: (String) -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Split Transcript by lines to find Speaker tags [Speaker N - MM:SS]
+            let segments = parseTranscript(transcript)
+            
+            ForEach(segments, id: \.id) { segment in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(segment.speaker)
+                            .font(.subheadline.weight(.bold))
+                            .foregroundColor(Theme.scribeRed)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Theme.scribeRed.opacity(0.1))
+                            .clipShape(Capsule())
+                            .onTapGesture {
+                                onRenameSpeaker(segment.speaker)
+                            }
+                        
+                        Text(segment.timestamp)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
+                    }
+                    
+                    Text(segment.text)
+                        .font(.body)
+                        .lineSpacing(6)
+                        .padding(.leading, 4)
+                }
+            }
+        }
+    }
+    
+    // Very simple parser for the [Speaker N - MM:SS] formatting
+    struct TranscriptSegment: Identifiable {
+        let id = UUID()
+        let speaker: String
+        let timestamp: String
+        let text: String
+    }
+    
+    private func parseTranscript(_ text: String) -> [TranscriptSegment] {
+        var segments: [TranscriptSegment] = []
+        let lines = text.components(separatedBy: "\n")
+        
+        var currentSpeaker = "Unknown"
+        var currentTimestamp = "00:00"
+        var currentBlockText = ""
+        
+        // Regex to match [Speaker 1 - 00:15]
+        let regex = try? NSRegularExpression(pattern: "\\[(.*?) - (.*?)\\]")
+        
+        for line in lines {
+            let nsRange = NSRange(line.startIndex..<line.endIndex, in: line)
+            if let match = regex?.firstMatch(in: line, range: nsRange) {
+                // If we already built a block, save it before starting the new one
+                if !currentBlockText.isEmpty {
+                    segments.append(TranscriptSegment(speaker: currentSpeaker, timestamp: currentTimestamp, text: currentBlockText.trimmingCharacters(in: .whitespacesAndNewlines)))
+                    currentBlockText = ""
+                }
+                
+                // Extract new Speaker and Timestamp
+                if let speakerRange = Range(match.range(at: 1), in: line),
+                   let timeRange = Range(match.range(at: 2), in: line) {
+                    currentSpeaker = String(line[speakerRange])
+                    currentTimestamp = String(line[timeRange])
+                }
+            } else {
+                currentBlockText += line + " "
+            }
+        }
+        
+        // Append the final block
+        if !currentBlockText.isEmpty {
+            segments.append(TranscriptSegment(speaker: currentSpeaker, timestamp: currentTimestamp, text: currentBlockText.trimmingCharacters(in: .whitespacesAndNewlines)))
+        }
+        
+        return segments
     }
 }

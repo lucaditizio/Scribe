@@ -13,8 +13,11 @@ final class Recording {
     
     // Phase 2 placeholders
     var rawTranscript: String?
-    var summary: String?
-    var structuredNotes: String?
+    
+    // Phase 3 LLM Structural Data
+    var meetingNotes: String?
+    var actionItems: String?
+    var mindMapJSON: Data?
     
     init(
         id: String = UUID().uuidString,

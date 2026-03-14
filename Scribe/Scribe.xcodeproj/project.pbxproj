@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		05E3777D2F65E495002EF9A6 /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 05E3777C2F65E495002EF9A6 /* FluidAudio */; };
+		05E378172F6601B6002EF9A6 /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = 05E378162F6601B6002EF9A6 /* MLX */; };
+		05E3781A2F6601D7002EF9A6 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 05E378192F6601D7002EF9A6 /* MLXLLM */; };
+		05E3781C2F6601D7002EF9A6 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 05E3781B2F6601D7002EF9A6 /* MLXLMCommon */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +30,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				05E3781A2F6601D7002EF9A6 /* MLXLLM in Frameworks */,
+				05E378172F6601B6002EF9A6 /* MLX in Frameworks */,
+				05E3781C2F6601D7002EF9A6 /* MLXLMCommon in Frameworks */,
 				05E3777D2F65E495002EF9A6 /* FluidAudio in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -71,6 +77,9 @@
 			name = Scribe;
 			packageProductDependencies = (
 				05E3777C2F65E495002EF9A6 /* FluidAudio */,
+				05E378162F6601B6002EF9A6 /* MLX */,
+				05E378192F6601D7002EF9A6 /* MLXLLM */,
+				05E3781B2F6601D7002EF9A6 /* MLXLMCommon */,
 			);
 			productName = Scribe;
 			productReference = 05E3774C2F65CA7B002EF9A6 /* Scribe.app */;
@@ -102,6 +111,8 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				05E3777B2F65E495002EF9A6 /* XCRemoteSwiftPackageReference "FluidAudio" */,
+				05E378152F6601B6002EF9A6 /* XCRemoteSwiftPackageReference "mlx-swift" */,
+				05E378182F6601D7002EF9A6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 05E3774D2F65CA7B002EF9A6 /* Products */;
@@ -264,6 +275,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Scribe needs access to the microphone";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Scribe needs speech recognition to perform offline speaker diarization on your recordings.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -274,7 +286,6 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Scribe needs speech recognition to perform offline speaker diarization on your recordings.";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -310,6 +321,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Scribe needs access to the microphone";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Scribe needs speech recognition to perform offline speaker diarization on your recordings.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -320,7 +332,6 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Scribe needs speech recognition to perform offline speaker diarization on your recordings.";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -374,6 +385,22 @@
 				kind = branch;
 			};
 		};
+		05E378152F6601B6002EF9A6 /* XCRemoteSwiftPackageReference "mlx-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ml-explore/mlx-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.30.6;
+			};
+		};
+		05E378182F6601D7002EF9A6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.30.6;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -381,6 +408,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 05E3777B2F65E495002EF9A6 /* XCRemoteSwiftPackageReference "FluidAudio" */;
 			productName = FluidAudio;
+		};
+		05E378162F6601B6002EF9A6 /* MLX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 05E378152F6601B6002EF9A6 /* XCRemoteSwiftPackageReference "mlx-swift" */;
+			productName = MLX;
+		};
+		05E378192F6601D7002EF9A6 /* MLXLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 05E378182F6601D7002EF9A6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLLM;
+		};
+		05E3781B2F6601D7002EF9A6 /* MLXLMCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 05E378182F6601D7002EF9A6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLMCommon;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
