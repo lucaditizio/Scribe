@@ -23,7 +23,7 @@ struct AgentGeneratingView: View {
                 colors: [
                     // Deep aesthetics matching Scribe Theme
                     Color.black, Color.blue.opacity(0.8), Color.black,
-                    Color.indigo.opacity(0.6), Color(Theme.primaryColor), Color.purple.opacity(0.6),
+                    Color.indigo.opacity(0.6), Theme.scribeRed, Color.purple.opacity(0.6),
                     Color.black, Color.indigo.opacity(0.8), Color.black
                 ]
             )
@@ -34,12 +34,12 @@ struct AgentGeneratingView: View {
                 // Pulsating Central Scribe Icon
                 ZStack {
                     Circle()
-                        .fill(Color(Theme.primaryColor).opacity(0.2))
+                        .fill(Theme.scribeRed.opacity(0.2))
                         .frame(width: 140, height: 140)
                         .scaleEffect(pulseOpacity ? 1.2 : 0.8)
                     
                     Circle()
-                        .fill(Color(Theme.primaryColor).opacity(0.5))
+                        .fill(Theme.scribeRed.opacity(0.5))
                         .frame(width: 100, height: 100)
                         .scaleEffect(pulseOpacity ? 1.1 : 0.9)
                     
@@ -96,7 +96,7 @@ struct LegacyAgentGeneratingView: View {
     
     var body: some View {
         ZStack {
-            LinearGradient(colors: [Color.black, Color(Theme.primaryColor).opacity(0.8), Color.indigo.opacity(0.6)],
+            LinearGradient(colors: [Color.black, Theme.scribeRed.opacity(0.8), Color.indigo.opacity(0.6)],
                            startPoint: isAnimating ? .topLeading : .bottomTrailing,
                            endPoint: isAnimating ? .bottomTrailing : .topLeading)
                 .ignoresSafeArea()

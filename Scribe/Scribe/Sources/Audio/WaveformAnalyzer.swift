@@ -47,10 +47,10 @@ class WaveformAnalyzer {
                     var data = [Int16](repeating: 0, count: length / MemoryLayout<Int16>.stride)
                     CMBlockBufferCopyDataBytes(blockBuffer, atOffset: 0, dataLength: length, destination: &data)
                     
-                    // Simple peak calculation for the buffer
-                    var bufferMax: Int16 = 0
+                    // Widen to Int32 before abs() — abs(Int16.min) overflows Int16 and crashes
+                    var bufferMax: Int32 = 0
                     for sample in data {
-                        let absoluteSample = abs(sample)
+                        let absoluteSample = abs(Int32(sample))
                         if absoluteSample > bufferMax {
                             bufferMax = absoluteSample
                         }

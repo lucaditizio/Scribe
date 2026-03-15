@@ -1,201 +1,207 @@
 import Foundation
 import SwiftData
-import Speech
+import AVFoundation
 import FluidAudio
 
-/// Transcription service using FluidAudio to automatically manage CoreML Parakeet bounds
+// MARK: - Transcription
+
 class TranscriptionService {
-    func transcribe(fileName: String, progressCallback: @escaping (String, Double) -> Void) async throws -> String {
+    private var asrManager: AsrManager?
+
+    func prepare(progressCallback: @escaping (String, Double) -> Void) async throws {
         await MainActor.run { progressCallback("Downloading/Loading Parakeet...", 0.1) }
-        
-        // FluidAudio natively handles CoreML downloading and caching
         let models = try await AsrModels.downloadAndLoad(version: .v3)
-        let asrManager = AsrManager(config: .default)
-        try await asrManager.initialize(models: models)
+        let manager = AsrManager(config: .default)
+        try await manager.initialize(models: models)
+        self.asrManager = manager
+    }
+
+    func transcribe(samples: [Float]) async throws -> String {
+        guard let manager = asrManager else { throw NSError(domain: "ASR", code: 0, userInfo: nil) }
+        // For segments that are completely silent or too short, Parakeet might fail. Catch safely.
+        guard samples.count > 8000 else { return "" } // > 0.5 sec required
         
-        let documentPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let fileURL = documentPath.appendingPathComponent(fileName)
-        
-        await MainActor.run { progressCallback("Extracting Audio & Transcribing...", 0.3) }
-        
-        // Let the SDK natively handle the audio URL formatting
-        let result = try await asrManager.transcribe(fileURL, source: .system)
-        
-        asrManager.cleanup()
+        let result = try await manager.transcribe(samples)
         return result.text
+    }
+
+    func cleanup() {
+        asrManager?.cleanup()
+        asrManager = nil
     }
 }
 
-/// Diarization service using Apple's Native Offline SFSpeechRecognizer
+// MARK: - Diarization
+
 class DiarizationService {
-    func diarize(fileName: String, progressCallback: @escaping (String, Double) -> Void) async throws -> [(speaker: String, text: String)] {
-        await MainActor.run { progressCallback("Requesting Speech Recognition Authorization...", 0.6) }
-        
-        // Wrap Apple's callback API in a modern async continuation
-        let authStatus: SFSpeechRecognizerAuthorizationStatus = await withCheckedContinuation { continuation in
-            SFSpeechRecognizer.requestAuthorization { status in
-                continuation.resume(returning: status)
-            }
-        }
-        
-        guard authStatus == .authorized else {
-            throw NSError(domain: "DiarizationService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Speech recognition not authorized."])
-        }
-        
-        let documentPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let fileURL = documentPath.appendingPathComponent(fileName)
-        
-        await MainActor.run { progressCallback("Native Speaker Clustering...", 0.7) }
-        
-        // Apple Native initialization
-        guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US")) else {
-            throw NSError(domain: "DiarizationService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Recognizer unavailable."])
-        }
-        recognizer.supportsOnDeviceRecognition = true
-        
-        let request = SFSpeechURLRecognitionRequest(url: fileURL)
-        request.requiresOnDeviceRecognition = true
-        request.shouldReportPartialResults = false
-        
-        return try await withCheckedThrowingContinuation { continuation in
-            recognizer.recognitionTask(with: request) { result, error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                    return
-                }
-                guard let result = result, result.isFinal else { return }
-                
-                var segments: [(speaker: String, text: String)] = []
-                #if os(iOS)
-                // SFSpeechRecognitionResult natively groups by speaker if voiceAnalytics/metadata is available in some contexts,
-                // However, for strict diarization mapping we usually align timestamps. 
-                // For Phase 2b, we will just return the block since Apple's native offline mapping is limited.
-                segments.append((speaker: "Speaker 1", text: result.bestTranscription.formattedString))
-                #else
-                segments.append((speaker: "Speaker 1", text: result.bestTranscription.formattedString))
-                #endif
-                
-                continuation.resume(returning: segments)
-            }
+    struct SpeakerSegment {
+        let speakerId: String   // e.g. "Speaker 1"
+        let start: Double       // seconds
+        let end: Double         // seconds
+    }
+
+    func diarize(fileURL: URL, progressCallback: @escaping (String, Double) -> Void) async throws -> [SpeakerSegment] {
+        await MainActor.run { progressCallback("Loading Diarization Models...", 0.45) }
+
+        let config = OfflineDiarizerConfig()
+        let manager = OfflineDiarizerManager(config: config)
+        try await manager.prepareModels()
+
+        await MainActor.run { progressCallback("Identifying Speakers...", 0.55) }
+        let result = try await manager.process(fileURL)
+
+        return result.segments.map { segment in
+            let rawNumStr = segment.speakerId.replacingOccurrences(of: "SPEAKER_", with: "")
+            let cleanNum = (Int(rawNumStr) ?? 0) + 1
+            return SpeakerSegment(
+                speakerId: "Speaker \(cleanNum)",
+                start: Double(segment.startTimeSeconds),
+                end: Double(segment.endTimeSeconds)
+            )
         }
     }
 }
+
+// MARK: - Transcript Assembler
+
+private func formatTimestamp(seconds: Double) -> String {
+    let m = Int(seconds) / 60
+    let s = Int(seconds) % 60
+    return String(format: "%02d:%02d", m, s)
+}
+
+// MARK: - Audio Duration Helper
+
+private func audioDuration(fileURL: URL) async -> Double {
+    let asset = AVURLAsset(url: fileURL)
+    // .duration is deprecated in iOS 16 — use async load(.duration)
+    if let duration = try? await asset.load(.duration) {
+        return duration.seconds
+    }
+    return 0
+}
+
+// MARK: - Inference Pipeline
 
 @Observable
 class InferencePipeline {
     var isProcessing = false
     var currentStep = ""
     var progress: Double = 0.0
-    
-    // Strict Sequential Execution
+
     func process(recording: Recording, modelContext: ModelContext) async {
         await MainActor.run {
             self.isProcessing = true
-            self.progress = 0.1
+            self.progress = 0.05
             self.currentStep = "Loading ASR Model..."
         }
-        
-        // --- STEP 1: TRANSCRIBE ---
-        let rawText: String
-        do {
-            var transcriber: TranscriptionService? = TranscriptionService()
-            rawText = try await transcriber!.transcribe(fileName: recording.audioFilePath) { step, prog in
-                Task { @MainActor in
-                    self.currentStep = step
-                    self.progress = prog
-                }
-            }
-            transcriber = nil
-        } catch {
-            print("Transcription Failed: \(error)")
-            await finalizeProcessing()
-            return
-        }
-        
-        // --- STEP 2: DIARIZE ---
-        let speakerSegments: [(speaker: String, text: String)]
+
+        let documentPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let fileURL = documentPath.appendingPathComponent(recording.audioFilePath)
+
+        // --- STEP 1: DIARIZE FIRST ---
+        var speakerSegments: [DiarizationService.SpeakerSegment] = []
+        let duration = await audioDuration(fileURL: fileURL)
         do {
             var diarizer: DiarizationService? = DiarizationService()
-            speakerSegments = try await diarizer!.diarize(fileName: recording.audioFilePath) { step, prog in
-                Task { @MainActor in
-                    self.currentStep = step
-                    self.progress = prog
-                }
+            speakerSegments = try await diarizer!.diarize(fileURL: fileURL) { step, prog in
+                Task { @MainActor in self.currentStep = step; self.progress = prog }
             }
             diarizer = nil
+            print("[InferencePipeline] ✅ Diarization: \(speakerSegments.count) segments")
         } catch {
-            print("Diarization Failed: \(error)")
-            // Fallback: If SFSpeechRecognizer fails, just use the FluidAudio raw text
-            speakerSegments = [(speaker: "Speaker", text: rawText)]
+            print("[InferencePipeline] ⚠️ Diarization failed — using single speaker: \(error)")
+            speakerSegments = [DiarizationService.SpeakerSegment(speakerId: "Speaker 1", start: 0, end: duration)]
         }
-        
-        // --- STEP 3: MERGE ---
+
+        // --- STEP 2: LOAD RAW AUDIO ---
+        await MainActor.run { self.currentStep = "Loading audio buffer..."; self.progress = 0.60 }
+        let allSamples: [Float]
+        do {
+            allSamples = try await AudioConverter.convertToFloat32(audioURL: fileURL)
+        } catch {
+            print("[InferencePipeline] ❌ Audio load failed: \(error)")
+            await finalizeProcessing(); return
+        }
+
+        // --- STEP 3: SEGMENTED TRANSCRIPTION ---
+        var finalTranscriptBlocks: [String] = []
+        do {
+            let transcriber = TranscriptionService()
+            try await transcriber.prepare { step, prog in
+                Task { @MainActor in self.currentStep = step; self.progress = 0.6 + prog * 0.1 }
+            }
+
+            let sampleRate: Double = 16000.0
+            for (i, segment) in speakerSegments.enumerated() {
+                await MainActor.run { 
+                    self.currentStep = "Transcribing \(segment.speakerId)... (\(i+1)/\(speakerSegments.count))"
+                    self.progress = 0.70 + (Double(i) / Double(speakerSegments.count)) * 0.15
+                }
+                
+                // Calculate exact array indices for this time block
+                let startIndex = Int(max(0, segment.start * sampleRate))
+                let endIndex   = Int(min(Double(allSamples.count), segment.end * sampleRate))
+                
+                guard startIndex < endIndex else { continue }
+                let slice = Array(allSamples[startIndex..<endIndex])
+                
+                let text = try await transcriber.transcribe(samples: slice)
+                if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    finalTranscriptBlocks.append("[\(segment.speakerId) - \(formatTimestamp(seconds: segment.start))]\n\(text)")
+                }
+            }
+            transcriber.cleanup()
+        } catch {
+            print("[InferencePipeline] ❌ Transcription failed: \(error)")
+            await finalizeProcessing(); return
+        }
+
+        let finalTranscript = finalTranscriptBlocks.joined(separator: "\n\n")
+
         await MainActor.run {
-            self.progress = 0.9
-            self.currentStep = "Formatting Notecard..."
+            // If the transcript is empty (due to silence, 0 duration audio, or failure),
+            // we MUST explicitly use nil so the UI still allows transcription attempts
+            // instead of silently vanishing the button.
+            recording.rawTranscript = finalTranscript.isEmpty ? nil : finalTranscript
+            self.progress = 0.88
+            self.currentStep = "Booting Intelligence Agent..."
         }
-        
-        // Merge the speaker segments (or default to raw ASR text if Diarization didn't provide granularity)
-        let finalTranscript: String
-        if speakerSegments.count > 0 {
-            finalTranscript = "[\(speakerSegments[0].speaker) - 00:00]\n" + rawText
-        } else {
-            finalTranscript = rawText
-        }
-        
-        await MainActor.run {
-            recording.rawTranscript = finalTranscript
-            self.progress = 0.95
-            self.currentStep = "Booting Inference Agent..."
-        }
-        
-        // --- STEP 4: LLM SUMMARY (MLX) ---
+
+        // --- STEP 4: LLM SUMMARY ---
         do {
             var llm: LLMService? = LLMService()
             let agentOutput = try await llm!.generateSummary(transcript: finalTranscript) { step, prog in
-                Task { @MainActor in
-                    self.currentStep = step
-                    self.progress = prog
-                }
+                Task { @MainActor in self.currentStep = step; self.progress = prog }
             }
             llm = nil
-            
+
             await MainActor.run {
-                recording.meetingNotes = agentOutput.meetingNotes
-                recording.actionItems = agentOutput.actionItems
-                
-                // Serialize Node UI Tree back to SwiftData blobs
+                if !agentOutput.title.isEmpty { recording.title = agentOutput.title }
+
+                if let notesData = try? JSONEncoder().encode(agentOutput.meetingNotes) {
+                    recording.meetingNotes = String(data: notesData, encoding: .utf8)
+                }
+                recording.actionItems = agentOutput.actionItems.isEmpty ? nil : agentOutput.actionItems
+
                 if let jsonData = try? JSONEncoder().encode(agentOutput.mindMapNodes) {
                     recording.mindMapJSON = jsonData
                 }
             }
-            
         } catch {
-            print("LLM Agent Failed: \(error)")
+            print("[InferencePipeline] ❌ LLM Agent Failed: \(error)")
+            await MainActor.run { self.currentStep = "⚠️ LLM Error: \(error.localizedDescription)" }
         }
-        
-        await MainActor.run {
-            self.progress = 1.0
-            self.currentStep = "Saving Intelligence..."
-        }
-        
-        // Save to SwiftData
-        do {
-            try modelContext.save()
-        } catch {
-            print("Failed to save transcript: \(error)")
-        }
-        
-        // Wait a beat to let user see "100%"
+
+        await MainActor.run { self.progress = 1.0; self.currentStep = "Saving Intelligence..." }
+
+        do { try modelContext.save() } catch { print("SwiftData save failed: \(error)") }
         try? await Task.sleep(nanoseconds: 500_000_000)
-        
         await finalizeProcessing()
     }
-    
+
     @MainActor
     private func finalizeProcessing() {
-        self.isProcessing = false
-        self.currentStep = ""
-        self.progress = 0.0
+        isProcessing = false; currentStep = ""; progress = 0.0
     }
 }

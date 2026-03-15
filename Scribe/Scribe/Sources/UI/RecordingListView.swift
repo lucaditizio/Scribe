@@ -13,34 +13,47 @@ struct RecordingListView: View {
         NavigationStack {
             ZStack(alignment: .bottom) {
                 // Main Content
-                ScrollView {
-                    VStack(spacing: 16) {
-                        DashboardHeaderView()
-                            .padding(.bottom, 8)
-                        
-                        // Recordings List
-                        if recordings.isEmpty {
-                            VStack(spacing: 16) {
-                                Image(systemName: "mic.slash")
-                                    .font(.system(size: 40))
-                                    .foregroundColor(.secondary)
-                                Text("No recordings yet.")
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.top, 40)
-                        } else {
-                            ForEach(recordings) { recording in
-                                NavigationLink(destination: RecordingDetailView(recording: recording)) {
-                                    RecordingCardView(recording: recording)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
+                List {
+                    DashboardHeaderView()
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .padding(.bottom, 8)
+                    
+                    // Recordings List
+                    if recordings.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "mic.slash")
+                                .font(.system(size: 40))
+                                .foregroundColor(.secondary)
+                            Text("No recordings yet.")
+                                .foregroundColor(.secondary)
                         }
-                        
-                        // Padding for the floating record button
-                        Spacer().frame(height: 100)
+                        .padding(.top, 40)
+                        .frame(maxWidth: .infinity)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                    } else {
+                        ForEach(recordings) { recording in
+                            NavigationLink(destination: RecordingDetailView(recording: recording)) {
+                                RecordingCardView(recording: recording)
+                            }
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 4)
+                        }
+                        .onDelete(perform: deleteRecordings)
                     }
+                    
+                    // Padding for the floating record button
+                    Color.clear.frame(height: 100)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
+                .listStyle(PlainListStyle())
+                .scrollContentBackground(.hidden)
                 .navigationTitle("Scribe")
                 .background(colorScheme == .dark ? Color.black : Color.gray.opacity(0.1))
                 
@@ -90,6 +103,17 @@ struct RecordingListView: View {
         formatter.unitsStyle = .positional
         formatter.zeroFormattingBehavior = .pad
         return formatter.string(from: duration) ?? "00:00"
+    }
+    
+    private func deleteRecordings(offsets: IndexSet) {
+        let documentPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        for index in offsets {
+            let recording = recordings[index]
+            let fileURL = documentPath.appendingPathComponent(recording.audioFilePath)
+            try? FileManager.default.removeItem(at: fileURL)
+            modelContext.delete(recording)
+        }
+        try? modelContext.save()
     }
 }
 

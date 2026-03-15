@@ -8,9 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		05E3777D2F65E495002EF9A6 /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 05E3777C2F65E495002EF9A6 /* FluidAudio */; };
-		05E378172F6601B6002EF9A6 /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = 05E378162F6601B6002EF9A6 /* MLX */; };
-		05E3781A2F6601D7002EF9A6 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 05E378192F6601D7002EF9A6 /* MLXLLM */; };
-		05E3781C2F6601D7002EF9A6 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 05E3781B2F6601D7002EF9A6 /* MLXLMCommon */; };
+		05E378212F667FFC002EF9A6 /* LLM in Frameworks */ = {isa = PBXBuildFile; productRef = 05E378202F667FFC002EF9A6 /* LLM */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,9 +28,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				05E3781A2F6601D7002EF9A6 /* MLXLLM in Frameworks */,
-				05E378172F6601B6002EF9A6 /* MLX in Frameworks */,
-				05E3781C2F6601D7002EF9A6 /* MLXLMCommon in Frameworks */,
+				05E378212F667FFC002EF9A6 /* LLM in Frameworks */,
 				05E3777D2F65E495002EF9A6 /* FluidAudio in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -77,9 +73,7 @@
 			name = Scribe;
 			packageProductDependencies = (
 				05E3777C2F65E495002EF9A6 /* FluidAudio */,
-				05E378162F6601B6002EF9A6 /* MLX */,
-				05E378192F6601D7002EF9A6 /* MLXLLM */,
-				05E3781B2F6601D7002EF9A6 /* MLXLMCommon */,
+				05E378202F667FFC002EF9A6 /* LLM */,
 			);
 			productName = Scribe;
 			productReference = 05E3774C2F65CA7B002EF9A6 /* Scribe.app */;
@@ -111,8 +105,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				05E3777B2F65E495002EF9A6 /* XCRemoteSwiftPackageReference "FluidAudio" */,
-				05E378152F6601B6002EF9A6 /* XCRemoteSwiftPackageReference "mlx-swift" */,
-				05E378182F6601D7002EF9A6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
+				05E3781F2F667FFC002EF9A6 /* XCRemoteSwiftPackageReference "LLM" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 05E3774D2F65CA7B002EF9A6 /* Products */;
@@ -385,20 +378,12 @@
 				kind = branch;
 			};
 		};
-		05E378152F6601B6002EF9A6 /* XCRemoteSwiftPackageReference "mlx-swift" */ = {
+		05E3781F2F667FFC002EF9A6 /* XCRemoteSwiftPackageReference "LLM" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ml-explore/mlx-swift";
+			repositoryURL = "https://github.com/eastriverlee/LLM.swift";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.30.6;
-			};
-		};
-		05E378182F6601D7002EF9A6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.30.6;
+				minimumVersion = 1.4.3;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -409,20 +394,10 @@
 			package = 05E3777B2F65E495002EF9A6 /* XCRemoteSwiftPackageReference "FluidAudio" */;
 			productName = FluidAudio;
 		};
-		05E378162F6601B6002EF9A6 /* MLX */ = {
+		05E378202F667FFC002EF9A6 /* LLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 05E378152F6601B6002EF9A6 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLX;
-		};
-		05E378192F6601D7002EF9A6 /* MLXLLM */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 05E378182F6601D7002EF9A6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
-			productName = MLXLLM;
-		};
-		05E3781B2F6601D7002EF9A6 /* MLXLMCommon */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 05E378182F6601D7002EF9A6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
-			productName = MLXLMCommon;
+			package = 05E3781F2F667FFC002EF9A6 /* XCRemoteSwiftPackageReference "LLM" */;
+			productName = LLM;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
