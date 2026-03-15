@@ -43,7 +43,11 @@ class DiarizationService {
     func diarize(fileURL: URL, progressCallback: @escaping (String, Double) -> Void) async throws -> [SpeakerSegment] {
         await MainActor.run { progressCallback("Loading Diarization Models...", 0.45) }
 
-        let config = OfflineDiarizerConfig()
+        // Lower clustering threshold massively to force separation on mono-mic recordings
+        var config = OfflineDiarizerConfig(clusteringThreshold: 0.35)
+        // Bound speakers to give the algorithm realistic meeting expectations
+        config = config.withSpeakers(min: 1, max: 8)
+        
         let manager = OfflineDiarizerManager(config: config)
         try await manager.prepareModels()
 

@@ -7,6 +7,7 @@ class AudioPlayer: NSObject, AVAudioPlayerDelegate {
     var currentTime: TimeInterval = 0
     var duration: TimeInterval = 0
     var currentSpeed: Float = 1.0
+    var errorLog: String? = nil
     
     private var audioPlayer: AVAudioPlayer?
     private var timer: Timer?
@@ -18,7 +19,7 @@ class AudioPlayer: NSObject, AVAudioPlayerDelegate {
         do {
             #if os(iOS)
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [.allowBluetooth, .defaultToSpeaker])
+            try session.setCategory(.playback, mode: .default)
             try session.setActive(true)
             #endif
             
@@ -29,13 +30,24 @@ class AudioPlayer: NSObject, AVAudioPlayerDelegate {
             
             duration = audioPlayer?.duration ?? recording.duration
             currentTime = 0
+            errorLog = nil // Clear previous errors if successful
+            
+        } catch let nsError as NSError {
+            self.errorLog = "Load Error [\(nsError.domain) - \(nsError.code)]: \(nsError.localizedDescription)"
+            print(self.errorLog!)
         } catch {
-            print("Failed to load audio for playback: \(error)")
+            self.errorLog = "Unknown Load Error: \(error.localizedDescription)"
+            print(self.errorLog!)
         }
     }
     
     func togglePlayback() {
-        guard let player = audioPlayer else { return }
+        guard let player = audioPlayer else { 
+            if errorLog == nil {
+                errorLog = "Cannot Play: AudioPlayer is null but no load error was caught."
+            }
+            return 
+        }
         
         if isPlaying {
             player.pause()

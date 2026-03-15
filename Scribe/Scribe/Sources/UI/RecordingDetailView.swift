@@ -23,9 +23,22 @@ struct RecordingDetailView: View {
     @State private var newSpeakerName = ""
     
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack(alignment: .bottom) {
+            VStack(spacing: 0) {
             // Top Half: Player & Waveform
             VStack {
+                if let errorMsg = audioPlayer.errorLog {
+                    Text(errorMsg)
+                        .font(.caption.weight(.medium))
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.red.opacity(0.8))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                }
+                
                 WaveformView(
                     samples: waveformAnalyzer.samples,
                     progress: waveformAnalyzer.samples.isEmpty ? 0 : CGFloat(audioPlayer.currentTime / audioPlayer.duration),
@@ -182,29 +195,43 @@ struct RecordingDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+        
+        // Floating Transcribe Button Overlay
+        if recording.rawTranscript == nil && !inferencePipeline.isProcessing {
+            Button(action: {
+                Task {
+                    await inferencePipeline.process(recording: recording, modelContext: modelContext)
+                }
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "waveform.path")
+                    Text("Generate Transcript")
+                        .fontWeight(.bold)
+                }
+                .font(.headline)
+                .foregroundColor(.white)
+                .padding(.vertical, 16)
+                .padding(.horizontal, 32)
+                .background(Theme.scribeRed)
+                .clipShape(Capsule())
+                .shadow(color: Theme.scribeRed.opacity(0.4), radius: 10, y: 5)
+            }
+            .padding(.bottom, 32)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .animation(.spring(), value: recording.rawTranscript == nil)
+        }
+    }
         .navigationTitle(recording.title)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                HStack {
-                    if recording.rawTranscript == nil && !inferencePipeline.isProcessing {
-                        Button("Transcribe") {
-                            Task {
-                                await inferencePipeline.process(recording: recording, modelContext: modelContext)
-                            }
-                        }
-                        .fontWeight(.bold)
-                        .foregroundColor(Theme.scribeRed)
-                    }
-                    
-                    Button(role: .destructive) {
-                        showingDeleteAlert = true
-                    } label: {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red)
-                    }
+                Button(role: .destructive) {
+                    showingDeleteAlert = true
+                } label: {
+                    Image(systemName: "trash")
+                        .foregroundColor(.red)
                 }
             }
         }
