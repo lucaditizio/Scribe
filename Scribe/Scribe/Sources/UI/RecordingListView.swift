@@ -8,6 +8,7 @@ struct RecordingListView: View {
     
     // Audio Engine State
     @State private var audioRecorder = AudioRecorder()
+    @State private var showingDeviceSettings = false
     
     var body: some View {
         NavigationStack {
@@ -56,6 +57,30 @@ struct RecordingListView: View {
                 .scrollContentBackground(.hidden)
                 .navigationTitle("Scribe")
                 .background(colorScheme == .dark ? Color.black : Color.gray.opacity(0.1))
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            showingDeviceSettings = true
+                        } label: {
+                            Image(systemName: "mic.badge.plus")
+                                .foregroundStyle(Theme.scribeRed)
+                        }
+                        .accessibilityLabel("External Microphone")
+                    }
+                }
+                .sheet(isPresented: $showingDeviceSettings) {
+                    NavigationStack {
+                        DeviceSettingsView()
+                            .toolbar {
+                                ToolbarItem(placement: .navigationBarLeading) {
+                                    Button("Done") {
+                                        showingDeviceSettings = false
+                                    }
+                                    .foregroundStyle(Theme.scribeRed)
+                                }
+                            }
+                    }
+                }
                 
                 // Floating Record Context
                 VStack {
@@ -79,6 +104,7 @@ struct RecordingListView: View {
             }
         }
     }
+
     
     private func saveRecording(duration: TimeInterval, sessionID: String) {
         let newRecording = Recording(
