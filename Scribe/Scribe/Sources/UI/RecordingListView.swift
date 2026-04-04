@@ -121,6 +121,8 @@ struct RecordingListView: View {
                     ) { duration, fileURL in
                         if let url = fileURL {
                             saveRecording(duration: duration, fileURL: url)
+                        } else {
+                            print("[RecordingListView] Recording failed: fileURL is nil")
                         }
                     }
                 }

@@ -59,8 +59,8 @@ class BleAudioRecorder: NSObject {
     }
     
     func startRecording() {
-        guard state == .idle else {
-            print("[BleAudioRecorder] Cannot start recording: already recording or stopped")
+        guard state == .idle || state == .stopped else {
+            print("[BleAudioRecorder] Cannot start recording: already recording")
             return
         }
         
