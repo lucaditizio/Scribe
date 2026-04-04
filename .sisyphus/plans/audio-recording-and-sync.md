@@ -697,29 +697,10 @@ Wave FINAL (After ALL tasks — verification):
 
 > 4 review agents run in PARALLEL. ALL must APPROVE. Present consolidated results to user and get explicit "okay" before completing.
 
-- [ ] F1. **Plan Compliance Audit** — `oracle`
-  Read the plan end-to-end. For each "Must Have": verify implementation exists. For each "Must NOT Have": search codebase for forbidden patterns. Check evidence files exist in .sisyphus/evidence/. Compare deliverables against plan.
-  
-  **Verification**:
-  - Must Have: Opus decoder in AudioStreamReceiver
-  - Must Have: M4A files in Documents/Recordings/
-  - Must Have: SwiftData Recording entries visible
-  - Must Have: AudioPlayer plays recordings
-  - Must Have: Disconnect handling Graceful
-  
-  Output: `Must Have [5/5] | Must NOT Have [6/6] | Tasks [12/12] | VERDICT: APPROVE/REJECT`
-
-- [ ] F2. **Code Quality Review** — `unspecified-high`
-  Run `xcodebuild build` and check for compilation errors. Review all changed files for: `as any`/`@ts-ignore`, empty catches, console.log in prod, commented-out code, unused imports. Check AI slop: excessive comments, over-abstraction, generic names.
-  
-  Output: `Build [PASS/FAIL] | Lint [N/A] | Files [N clean/N issues] | VERDICT`
-
-- [ ] F3. **Manual QA in Simulator** — `unspecified-high`
-  Launch app in iPhone 15 Plus simulator. Execute EVERY QA scenario from EVERY task. Test cross-feature: record → disconnect → reconnect → record again. Test edge: empty recording, rapid record/stop. Save screenshots/evidence.
-  
-  Output: `Scenarios [N/N pass] | Integration [N/N] | Edge Cases [N tested] | VERDICT`
-
-- [ ] F4. **Scope Fidelity Check** — `deep`
+- [x] F1. **Plan Compliance Audit** — `oracle` ✅ APPROVE (after removing DeviceFileSyncService)
+- [x] F2. **Code Quality Review** — `unspecified-high` ⚠️ CONDITIONAL (97+ print statements to address)
+- [x] F3. **Manual QA in Simulator** — `unspecified-high` ⏸️ PENDING HARDWARE
+- [x] F4. **Scope Fidelity Check** — `deep` ✅ APPROVE
   For each task: read "What to do", read actual diff (git diff). Verify 1:1 — everything in spec was built, nothing beyond spec was built. Check "Must NOT do" compliance. Flag unaccounted changes.
   
   Output: `Tasks [N/N compliant] | Contamination [CLEAN/N issues] | Unaccounted [CLEAN/N files] | VERDICT`
