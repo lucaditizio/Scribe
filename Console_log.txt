@@ -1,9 +1,6 @@
-[SLink RX] Response: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 80 A9]
-[DeviceConnectionManager] Unsolicited SLink response received
 [OpusAudioDecoder] Decoded 59 bytes -> 40 samples
-[BleAudioRecorder] Recording stopped, encoding 200 samples...
+[BleAudioRecorder] Recording stopped, encoding 120 samples...
 <<<< FigApplicationStateMonitor >>>> signalled err=-19431 at <>:474
 <<<< FigApplicationStateMonitor >>>> signalled err=-19431 at <>:474
-[BleAudioRecorder] Failed to start writing: Cannot Encode Media
-[BleAudioRecorder] Failed to encode audio to M4A
-[RecordingListView] Recording failed: fileURL is nil
+[BleAudioRecorder] Failed to append sample buffer
+[BleAudioRecorder] Asset writer finished with error: Error Domain=AVFoundationErrorDomain Code=-11861 "Cannot Encode Media" UserInfo={NSLocalizedFailureReason=The encoding parameters are not supported., NSLocalizedDescription=Cannot Encode Media, NSUnderlyingError=0x10727a070 {Error Domain=NSOSStatusErrorDomain Code=-12651 "(null)"}}

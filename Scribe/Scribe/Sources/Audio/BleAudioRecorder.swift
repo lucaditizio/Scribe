@@ -243,10 +243,11 @@ class BleAudioRecorder: NSObject {
         
         let audioSettings: [String: Any] = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-            AVSampleRateKey: sampleRate,
-            AVNumberOfChannelsKey: channels,
+            AVSampleRateKey: 44100,  // Force 44100 Hz - AAC encoder standard
+            AVNumberOfChannelsKey: 1,
             AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
-            AVEncoderBitRateKey: 128000
+            AVEncoderBitRateKey: 128000,
+            AVEncoderBitRateStrategyKey: AVAudioBitRateStrategy_Constant
         ]
         
         guard let formatDesc = createPCMFormatDescription() else {
