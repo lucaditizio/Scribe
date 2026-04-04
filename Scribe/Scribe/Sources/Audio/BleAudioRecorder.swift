@@ -198,21 +198,57 @@ class BleAudioRecorder: NSObject {
         let outputURL = RecordingsStorage.recordingsDirectory().appendingPathComponent(filename)
         
         do {
-            let data = Data(bytes: samples, count: samples.count * MemoryLayout<Float>.stride)
-            try data.write(to: outputURL)
-            print("[BleAudioRecorder] Audio saved to: \(outputURL.path) (\(samples.count) samples, 16kHz Float32)")
+            let wavData = createWAVFile(samples: samples, sampleRate: 16000)
+            try wavData.write(to: outputURL)
+            print("[BleAudioRecorder] Audio saved to: \(outputURL.path) (\(samples.count) samples, 16kHz Float32 WAV)")
             return outputURL
         } catch {
-            print("[BleAudioRecorder] Failed to write PCM data: \(error)")
+            print("[BleAudioRecorder] Failed to write WAV data: \(error)")
             return nil
         }
+    }
+    
+    private func createWAVFile(samples: [Float], sampleRate: UInt32) -> Data {
+        let bytesPerSample = MemoryLayout<Float>.stride
+        let dataSize = UInt32(samples.count * bytesPerSample)
+        let byteRate = UInt32(sampleRate * UInt32(bytesPerSample))
+        
+        var wavData = Data()
+        
+        wavData.append("RIFF".data(using: .ascii)!)
+        wavData.append(UInt32(36 + dataSize).littleEndianBytes)
+        wavData.append("WAVE".data(using: .ascii)!)
+        
+        wavData.append("fmt ".data(using: .ascii)!)
+        wavData.append(UInt32(16).littleEndianBytes)
+        wavData.append(UInt16(3).littleEndianBytes)
+        wavData.append(UInt16(1).littleEndianBytes)
+        wavData.append(sampleRate.littleEndianBytes)
+        wavData.append(byteRate.littleEndianBytes)
+        wavData.append(UInt16(bytesPerSample).littleEndianBytes)
+        wavData.append(UInt16(32).littleEndianBytes)
+        
+        wavData.append("data".data(using: .ascii)!)
+        wavData.append(dataSize.littleEndianBytes)
+        
+        let sampleData = Data(bytes: samples, count: Int(dataSize))
+        wavData.append(sampleData)
+        
+        return wavData
     }
     
     private func generateRecordingFilename() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
         let timestamp = formatter.string(from: Date())
-        return "Recording_\(timestamp).pcm"
+        return "Recording_\(timestamp).wav"
+    }
+}
+
+extension FixedWidthInteger {
+    var littleEndianBytes: Data {
+        var value = self.littleEndian
+        return Data(bytes: &value, count: MemoryLayout<Self>.size)
     }
 }
 
