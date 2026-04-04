@@ -169,7 +169,7 @@ class LLMService {
         await MainActor.run { progressCallback("Analyzing transcript...", 0.55) }
 
         let userTurn = "\(LLMService.singlePassSystemPrompt)\n\nTranscript:\n\(transcript)"
-        let processed = llm.preprocess(userTurn, [])
+        let processed = llm.preprocess(userTurn, [], .none)
         print("[LLMService] 📝 Single-pass prompt (\(processed.count) chars)")
 
         await MainActor.run { progressCallback("Generating meeting notes...", 0.65) }
@@ -209,7 +209,7 @@ class LLMService {
             .joined(separator: "\n\n")
 
         let userTurn = "\(LLMService.synthesisSystemPrompt)\n\nSegment summaries:\n\(combinedSummaries)"
-        let processed = llm.preprocess(userTurn, [])
+        let processed = llm.preprocess(userTurn, [], .none)
         print("[LLMService] 📝 Synthesis prompt (\(processed.count) chars)")
 
         let output = await llm.getCompletion(from: processed)
@@ -223,7 +223,7 @@ class LLMService {
 
     private func extractChunk(_ chunk: String, llm: LLM, index: Int, total: Int) async -> String {
         let userTurn = "\(LLMService.extractionSystemPrompt)\n\nTranscript segment \(index + 1) of \(total):\n\(chunk)"
-        let processed = llm.preprocess(userTurn, [])
+        let processed = llm.preprocess(userTurn, [], .none)
         let output = await llm.getCompletion(from: processed)
         print("[LLMService] 📦 Chunk \(index + 1)/\(total) extraction (\(output.count) chars)")
         return output

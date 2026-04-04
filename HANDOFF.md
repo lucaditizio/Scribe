@@ -24,8 +24,8 @@ WORK COMPLETED
 - Mapped complete GATT service/characteristic structure
 - Identified connection options discrepancy (Scribe: connect:1, DVR: connect:0)
 - Located backlight control characteristic at handle 0x001C (UUID 0xE0E1)
-- Updated oh-my-opencode.json configuration (all LM Studio models use unsloth/qwen3.5-35b-a3b)
-- Changed Hephaestus model from kimi-k2.5 to GLM-5
+- Removed LM Studio local model overrides for performance
+- Restored original fallback chain: librarian/explore → minimax-m2.7, sisyphus-junior → kimi-k2.5
 - Deleted misleading/poisonous documentation files (bluetooth_fix.md, ble_protocol_analysis.md, IMPLEMENTATION_PROMPT.md)
 - Documented TODOs: Opus decoder stub at lines 219, 227 in AudioStreamReceiver.swift
 - Confirmed DeviceFileSyncService is mock-only with hardcoded test data
@@ -114,7 +114,7 @@ Handle Range  | Service UUID      | Characteristics
 
 IMPORTANT DECISIONS
 -------------------
-1. Model Configuration: Changed Hephaestus from kimi-k2.5 to GLM-5 for better hardware protocol analysis
+1. Model Configuration: Removed LM Studio local overrides, restored opencode-go fallback chain (minimax-m2.7 for librarian/explore, kimi-k2.5 for sisyphus-junior)
 2. Deleted Misleading Docs: Removed bluetooth_fix.md, ble_protocol_analysis.md, IMPLEMENTATION_PROMPT.md - they contained incorrect assumptions
 3. Revised Phase 1 Status: Connection actually works (75% complete), gaps are in audio decoding and device initialization, not BLE infrastructure
 4. Untainted Analysis: Based findings solely on source code and raw bluetoothd logs, not on potentially incorrect documentation
@@ -143,8 +143,10 @@ Next session should prioritize:
 The bluetoothd logs are the source of truth. DVR log was truncated before showing full initialization sequence - capturing a complete log would be valuable.
 
 Model Configuration (oh-my-opencode.json):
-- librarian, explore, sisyphus-junior: lmstudio/unsloth/qwen3.5-35b-a3b
-- hephaestus: opencode-go/glm-5 (changed from kimi-k2.5)
+- librarian: opencode-go/minimax-m2.7
+- explore: opencode-go/minimax-m2.7
+- sisyphus-junior: opencode-go/kimi-k2.5
+- hephaestus: opencode-go/glm-5
 - All others: opencode-go/kimi-k2.5 or glm-5 as appropriate
 
 Unit Tests Status: 33 tests written, ~90% coverage, BUT they test mock objects not real hardware. Need to run in Xcode to verify they pass with current implementation.

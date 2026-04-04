@@ -1,0 +1,32 @@
+{
+  "active_plan": "/Users/lucaditizio/github/Scribe/.sisyphus/plans/bluetooth-connection-binding.md",
+  "started_at": "2026-04-04T07:44:39.660Z",
+  "session_ids": [
+    "ses_2a8a92dfdffeqZBehuYfNalaJe",
+    "ses_2a88b6ad5ffe07Nt8X7ctqx2Ek",
+    "ses_2a88b3b42ffelgkU2supYm0Dix",
+    "ses_2a883eea0ffe4w4EKIwFOb2DvT",
+    "ses_2a87e4894ffecmFHmjDfltgZGB",
+    "ses_2a8781849ffe1PTEPxwgxdtxUB",
+    "ses_2a8704b0affea521XA3LF54O5C",
+    "ses_2a86a3137ffeE3qCP0SYBOmprf",
+    "ses_2a8138a01ffelGT2LbYDBv8C3I",
+    "ses_2a7f306e4ffe3ZihQvYPlar3nQ",
+    "ses_2a7efeba0ffeT6eDxGWvly0F1I",
+    "ses_2a7b6d9a7ffe9ugnFHu9XFJghj",
+    "ses_2a7b0e6d3ffe3Afjv1t4ir9bIb"
+  ],
+  "plan_name": "bluetooth-connection-binding",
+  "agent": "atlas",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "Capture Complete DVR App bluetoothd Logs",
+      "session_id": "ses_2a88b6ad5ffe07Nt8X7ctqx2Ek",
+      "agent": "Sisyphus-Junior",
+      "category": "writing",
+      "updated_at": "2026-04-04T07:47:06.846Z"
+    }
+  }
+}

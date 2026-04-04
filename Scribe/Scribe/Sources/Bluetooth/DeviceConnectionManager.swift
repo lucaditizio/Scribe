@@ -3,17 +3,14 @@ import Combine
 import CoreBluetooth
 
 // MARK: - Known AI DVR Link GATT UUIDs
-// Device actually exposes: E49A3001, E0E0, F0F0, Battery
 
 enum DVRLinkUUID {
     static let primaryService            = CBUUID(string: "E49A3001-F69A-11E8-8EB2-F2801F1B9FD1")
-    static let authCharacteristic        = CBUUID(string: "E49A3002-F69A-11E8-8EB2-F2801F1B9FD1")
-    static let commandCharacteristic     = CBUUID(string: "E49A3002-F69A-11E8-8EB2-F2801F1B9FD1")
-    static let audioStreamCharacteristic = CBUUID(string: "E49A3003-F69A-11E8-8EB2-F2801F1B9FD1")
+    static let commandWriteChar          = CBUUID(string: "F0F1")
     static let fileTransferCharacteristic = CBUUID(string: "F0F2")
     static let fileTransferChar2          = CBUUID(string: "F0F3")
     static let fileTransferChar3          = CBUUID(string: "F0F4")
-    static let commandWriteChar           = CBUUID(string: "F0F1")
+    static let audioStreamCharacteristic = CBUUID(string: "E49A3003-F69A-11E8-8EB2-F2801F1B9FD1")
     static let batteryService            = CBUUID(string: "180F")
     static let batteryCharacteristic     = CBUUID(string: "2A19")
 }
@@ -22,6 +19,10 @@ public enum ConnectionState: Equatable {
     case disconnected
     case connecting
     case connected
+    case binding        // During SLink binding sequence
+    case initializing   // During SLink init sequence
+    case initialized    // Successfully initialized
+    case bound          // Successfully bound
     case failed(String)
     case reconnecting(Int)
 }
@@ -37,6 +38,8 @@ public struct ConnectionEvent: Equatable {
         case reconnected
         case servicesDiscovered
         case characteristicDiscovered
+        case slinkCommandSent(String)
+        case slinkResponseReceived(String)
     }
 }
 
@@ -51,14 +54,13 @@ public class DeviceConnectionManager: NSObject, ScannerConnectionDelegate {
 
     weak var scanner: BluetoothDeviceScanner?
 
-    private var authCharacteristic: CBCharacteristic?
-    internal var audioNotificationCharacteristic: CBCharacteristic?
-    internal var audioDataCharacteristic: CBCharacteristic?
-    internal var fileTransferCharacteristic: CBCharacteristic?
-    internal var fileTransferChar2: CBCharacteristic?
-    internal var fileTransferChar3: CBCharacteristic?
-    internal var commandWriteCharacteristic: CBCharacteristic?
-    private var audioCCCDDescriptor: CBDescriptor?
+    // Characteristics
+    internal var audioStreamCharacteristic: CBCharacteristic?
+    internal var fileTransferCharacteristic: CBCharacteristic?  // F0F2 - notifications
+    internal var fileTransferChar2: CBCharacteristic?           // F0F3
+    internal var fileTransferChar3: CBCharacteristic?           // F0F4
+    internal var commandWriteCharacteristic: CBCharacteristic?  // F0F1
+    internal var notificationCharacteristic: CBCharacteristic?  // F0F2 for notifications (handle 0x0024)
 
     public var connectionState: ConnectionState = .disconnected
     public var connectionEvents: [ConnectionEvent] = []
@@ -66,16 +68,27 @@ public class DeviceConnectionManager: NSObject, ScannerConnectionDelegate {
     public var availableServices: [CBService] = []
     public var supportedCharacteristics: [CBCharacteristic] = []
 
+    // Connection management
     private let maxReconnectAttempts = 5
     private var reconnectAttempt = 0
     private let userDefaultsKey = "lastConnectedDeviceID"
     private var connectionTimeoutWork: DispatchWorkItem?
     private let connectionTimeoutSeconds: TimeInterval = 10
-    
+
     private var pendingNotificationSubscriptions = 0
     private var hasSentInitialCommand = false
     private var hasReceivedFirstNotification = false
     private var keepAliveTimer: Timer?
+
+    // SLink Protocol State
+    private var slinkPacketParser = SLinkPacketParser()
+    private var slinkState: SLinkConnectionState = .disconnected
+    private var initSequenceStep = 0
+    private var slinkCommandTimer: Timer?
+    private var pendingCommand: SLinkCommand?
+    
+    // Device serial from capture
+    private let deviceSerial = "129950"
 
     public init(scanner: BluetoothDeviceScanner) {
         self.scanner = scanner
@@ -104,6 +117,7 @@ public class DeviceConnectionManager: NSObject, ScannerConnectionDelegate {
         hasSentInitialCommand = false
         hasReceivedFirstNotification = false
         pendingNotificationSubscriptions = 0
+        initSequenceStep = 0
 
         print("[DeviceConnectionManager] Connecting to \(device.name)")
         
@@ -148,39 +162,27 @@ public class DeviceConnectionManager: NSObject, ScannerConnectionDelegate {
         peripheral?.discoverServices(nil)
     }
 
-    public func subscribeToAudioNotifications() {
-        guard let characteristic = audioNotificationCharacteristic, let p = peripheral else { return }
-        p.setNotifyValue(true, for: characteristic)
-    }
-
-    public func unsubscribeFromAudioNotifications() {
-        guard let characteristic = audioNotificationCharacteristic, let p = peripheral else { return }
-        p.setNotifyValue(false, for: characteristic)
-    }
-
-    public func writeAudioData(_ data: Data) {
-        guard let characteristic = audioDataCharacteristic, let p = peripheral else { return }
-        let writeType: CBCharacteristicWriteType = characteristic.properties.contains(.write) ? .withResponse : .withoutResponse
-        p.writeValue(data, for: characteristic, type: writeType)
-    }
-
     private func resetState() {
         stopKeepAlive()
+        slinkCommandTimer?.invalidate()
         connectionState = .disconnected
+        slinkState = .disconnected
         peripheral = nil
         connectedDevice = nil
         availableServices.removeAll()
         supportedCharacteristics.removeAll()
-        authCharacteristic = nil
-        audioNotificationCharacteristic = nil
-        audioDataCharacteristic = nil
+        audioStreamCharacteristic = nil
         fileTransferCharacteristic = nil
         fileTransferChar2 = nil
         fileTransferChar3 = nil
         commandWriteCharacteristic = nil
+        notificationCharacteristic = nil
         hasSentInitialCommand = false
         hasReceivedFirstNotification = false
         pendingNotificationSubscriptions = 0
+        initSequenceStep = 0
+        pendingCommand = nil
+        slinkPacketParser.reset()
     }
 
     private func addConnectionEvent(_ type: ConnectionEvent.ConnectionEventType, message: String? = nil) {
@@ -291,16 +293,12 @@ extension DeviceConnectionManager: CBPeripheralDelegate {
                 self.supportedCharacteristics.append(characteristic)
                 
                 let uuid = characteristic.uuid
-                if uuid == DVRLinkUUID.authCharacteristic {
-                    self.authCharacteristic = characteristic
-                    print("[DeviceConnectionManager] Auth char found")
-                } else if uuid == DVRLinkUUID.audioStreamCharacteristic {
-                    self.audioNotificationCharacteristic = characteristic
+                if uuid == DVRLinkUUID.audioStreamCharacteristic {
+                    self.audioStreamCharacteristic = characteristic
                     print("[DeviceConnectionManager] Audio stream char found (E49A3003)")
                 } else if uuid == DVRLinkUUID.fileTransferCharacteristic {
                     self.fileTransferCharacteristic = characteristic
                     print("[DeviceConnectionManager] File transfer char found (F0F2)")
-                    peripheral.discoverDescriptors(for: characteristic)
                 } else if uuid == DVRLinkUUID.fileTransferChar2 {
                     self.fileTransferChar2 = characteristic
                     print("[DeviceConnectionManager] File transfer char 2 found (F0F3)")
@@ -317,11 +315,12 @@ extension DeviceConnectionManager: CBPeripheralDelegate {
             
             self.addConnectionEvent(.characteristicDiscovered)
             
-            self.subscribeToFileTransferChars()
+            // Start notification subscription process
+            self.subscribeToNotificationChars()
         }
     }
     
-    private func subscribeToFileTransferChars() {
+    private func subscribeToNotificationChars() {
         guard let p = peripheral, p.state == .connected else {
             print("[DeviceConnectionManager] Cannot subscribe - peripheral nil or disconnected")
             return
@@ -329,11 +328,12 @@ extension DeviceConnectionManager: CBPeripheralDelegate {
         
         pendingNotificationSubscriptions = 0
         
+        // Subscribe to F0F2 for SLink responses (handle 0x0024)
         if let f0f2 = self.fileTransferCharacteristic {
             pendingNotificationSubscriptions += 1
             p.setNotifyValue(true, for: f0f2)
             p.discoverDescriptors(for: f0f2)
-            print("[DeviceConnectionManager] Subscribing to F0F2")
+            print("[DeviceConnectionManager] Subscribing to F0F2 (notifications)")
         }
         
         if let f0f3 = self.fileTransferChar2 {
@@ -353,45 +353,212 @@ extension DeviceConnectionManager: CBPeripheralDelegate {
         print("[DeviceConnectionManager] Waiting for \(pendingNotificationSubscriptions) notifications to enable...")
     }
     
-    private func checkAndSendInitialCommand() {
-        if pendingNotificationSubscriptions > 0 {
-            print("[DeviceConnectionManager] Still waiting for \(pendingNotificationSubscriptions) notifications")
+    // MARK: - SLink Initialization Sequence
+    
+    private func startSLinkInitialization() {
+        guard let p = peripheral, p.state == .connected else {
+            print("[DeviceConnectionManager] Cannot start init - not connected")
             return
         }
         
-        if hasSentInitialCommand {
-            print("[DeviceConnectionManager] Initial command already sent")
+        guard let commandChar = commandWriteCharacteristic else {
+            print("[DeviceConnectionManager] Cannot start init - F0F1 not found")
             return
         }
         
-        sendInitialCommand()
+        print("[DeviceConnectionManager] Starting SLink initialization sequence...")
+        slinkState = .handshaking
+        initSequenceStep = 0
+        
+        // Start the sequence
+        sendNextInitCommand()
     }
     
-    private func sendInitialCommand() {
-        guard let p = peripheral else {
-            print("[DeviceConnectionManager] No peripheral")
+    private func sendNextInitCommand() {
+        guard let p = peripheral, p.state == .connected else {
+            print("[DeviceConnectionManager] Cannot send command - not connected")
             return
         }
         
-        guard p.state == .connected else {
-            print("[DeviceConnectionManager] Cannot send initial command - not connected")
+        guard let commandChar = commandWriteCharacteristic else {
+            print("[DeviceConnectionManager] Cannot send command - F0F1 not found")
             return
         }
         
-        guard let char = commandWriteCharacteristic else {
-            print("[DeviceConnectionManager] Command char F0F1 not found")
+        let commands = SLinkInitSequence.commands
+        
+        guard initSequenceStep < commands.count else {
+            // Sequence complete
+            print("[DeviceConnectionManager] Initialization sequence complete!")
+            slinkState = .initialized
+            connectionState = .initialized
+            
+            // Subscribe to audio stream
+            subscribeToAudioStream()
+            startKeepAlive()
             return
         }
         
-        p.writeValue(Data([0x00]), for: char, type: .withoutResponse)
-        print("[DeviceConnectionManager] Sent initial command via F0F1")
-        hasSentInitialCommand = true
+        let command = commands[initSequenceStep]
+        
+        // Create packet based on command type
+        let packet: SLinkPacket
+        if command == .sendSerial {
+            packet = SLinkPacket.serialPacket(serial: deviceSerial)
+        } else {
+            packet = SLinkPacket.command(command)
+        }
+        
+        let data = packet.serializeToData()
+        let hexString = data.map { String(format: "%02X", $0) }.joined(separator: " ")
+        
+        print("[SLink TX] Step \(initSequenceStep + 1)/\(commands.count): \(command.name) -> [\(hexString)]")
+        
+        p.writeValue(data, for: commandChar, type: .withoutResponse)
+        
+        addConnectionEvent(.slinkCommandSent(command.name))
+        
+        pendingCommand = command
+        slinkState = stateForStep(initSequenceStep)
+        
+        // Set timeout for this command
+        slinkCommandTimer?.invalidate()
+        slinkCommandTimer = Timer.scheduledTimer(withTimeInterval: SLinkConstants.defaultTimeout, repeats: false) { [weak self] _ in
+            self?.handleSLinkTimeout()
+        }
+    }
+    
+    private func stateForStep(_ step: Int) -> SLinkConnectionState {
+        switch step {
+        case 0: return .handshaking
+        case 1: return .sendingSerial
+        case 2: return .gettingDeviceInfo
+        case 3: return .configuring
+        case 4: return .statusControl
+        case 5, 6, 7: return .initializing
+        default: return .initializing
+        }
+    }
+    
+    private func handleSLinkResponse(_ packet: SLinkPacket) {
+        let hexString = packet.serializeToData().map { String(format: "%02X", $0) }.joined(separator: " ")
+        print("[SLink RX] Response: [\(hexString)]")
+        
+        addConnectionEvent(.slinkResponseReceived(packet.debugDescription))
+        
+        // Check if this is an expected response
+        guard let pending = pendingCommand else {
+            print("[DeviceConnectionManager] Unsolicited SLink response received")
+            return
+        }
+        
+        // Verify this is the expected response type (command bytes should match)
+        let expectedCommand = pending.rawValue
+        let receivedCommand = packet.command
+        
+        guard receivedCommand == expectedCommand else {
+            print("[DeviceConnectionManager] Unexpected response: expected \(String(format: "0x%04X", expectedCommand)), got \(String(format: "0x%04X", receivedCommand))")
+            return
+        }
+        
+        // Cancel timeout
+        slinkCommandTimer?.invalidate()
+        
+        // Process response based on step
+        processResponseForCurrentStep(packet: packet)
+        
+        // Move to next step
+        initSequenceStep += 1
+        pendingCommand = nil
+        
+        // Send next command after delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + SLinkInitSequence.commandDelay) { [weak self] in
+            self?.sendNextInitCommand()
+        }
+    }
+    
+    private func processResponseForCurrentStep(packet: SLinkPacket) {
+        switch initSequenceStep {
+        case 0:
+            print("[DeviceConnectionManager] Handshake acknowledged")
+        case 1:
+            print("[DeviceConnectionManager] Serial acknowledged")
+        case 2:
+            // Device info response contains serial
+            if let serial = packet.deviceSerial {
+                print("[DeviceConnectionManager] Device serial from response: \(serial)")
+            }
+        case 3:
+            print("[DeviceConnectionManager] Configuration acknowledged")
+        case 4:
+            print("[DeviceConnectionManager] Status control acknowledged")
+        case 5, 6, 7:
+            print("[DeviceConnectionManager] Init command \(initSequenceStep) acknowledged")
+        default:
+            break
+        }
+    }
+    
+    private func handleSLinkTimeout() {
+        guard let pending = pendingCommand else { return }
+        
+        print("[DeviceConnectionManager] SLink command timeout: \(pending.name)")
+        
+        // Retry this step (up to 3 retries per step)
+        if initSequenceStep < 3 {
+            print("[DeviceConnectionManager] Retrying step \(initSequenceStep + 1)...")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.sendNextInitCommand()
+            }
+        } else {
+            connectionState = .failed("SLink initialization timeout at step \(initSequenceStep + 1)")
+            slinkState = .failed("Timeout: \(pending.name)")
+        }
+    }
+    
+    func subscribeToAudioStream() {
+        guard let peripheral = peripheral,
+              let audioChar = audioStreamCharacteristic else {
+            print("[DeviceConnectionManager] Cannot subscribe to audio - characteristic not found")
+            return
+        }
+        
+        peripheral.setNotifyValue(true, for: audioChar)
+        print("[DeviceConnectionManager] Subscribed to audio stream (E49A3003)")
+        
+        NotificationCenter.default.post(
+            name: .audioCharacteristicDidUpdate,
+            object: self,
+            userInfo: ["characteristic": audioChar]
+        )
+    }
+    
+    // MARK: - AudioStreamReceiver Compatibility
+    
+    /// Alias for audioStreamCharacteristic (for AudioStreamReceiver compatibility)
+    var audioNotificationCharacteristic: CBCharacteristic? {
+        return audioStreamCharacteristic
+    }
+    
+    /// Subscribe to audio notifications (alias for subscribeToAudioStream)
+    func subscribeToAudioNotifications() {
+        subscribeToAudioStream()
+    }
+    
+    /// Unsubscribe from audio notifications
+    func unsubscribeFromAudioNotifications() {
+        guard let peripheral = peripheral,
+              let audioChar = audioStreamCharacteristic else {
+            return
+        }
+        peripheral.setNotifyValue(false, for: audioChar)
+        print("[DeviceConnectionManager] Unsubscribed from audio notifications")
     }
     
     private func startKeepAlive() {
         keepAliveTimer?.invalidate()
         keepAliveTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
-            self?.sendDeviceCommand("heartbeat")
+            self?.sendHeartbeat()
         }
     }
     
@@ -400,35 +567,14 @@ extension DeviceConnectionManager: CBPeripheralDelegate {
         keepAliveTimer = nil
     }
     
-    private func sendDeviceCommand(_ command: String) {
-        guard let p = peripheral else {
-            print("[DeviceConnectionManager] No peripheral")
-            return
-        }
+    private func sendHeartbeat() {
+        guard let p = peripheral, p.state == .connected else { return }
+        guard let char = commandWriteCharacteristic else { return }
         
-        guard p.state == .connected else {
-            print("[DeviceConnectionManager] Cannot send command - not connected")
-            return
-        }
-        
-        guard let char = commandWriteCharacteristic else {
-            print("[DeviceConnectionManager] Command char F0F1 not available")
-            return
-        }
-        
-        let commandData: Data
-        if command == "start_record" {
-            commandData = Data([0x01, 0x00, 0x00, 0x00])
-        } else if command == "get_status" {
-            commandData = Data([0x02, 0x00, 0x00, 0x00])
-        } else if command == "heartbeat" {
-            commandData = Data([0x00, 0x00, 0x00, 0x00])
-        } else {
-            commandData = Data([0x00])
-        }
-        
-        p.writeValue(commandData, for: char, type: .withoutResponse)
-        print("[DeviceConnectionManager] Sent command: \(command)")
+        // Simple heartbeat packet
+        let heartbeat = SLinkPacket(command: 0x0205, payload: [0x00])
+        p.writeValue(heartbeat.serializeToData(), for: char, type: .withoutResponse)
+        print("[DeviceConnectionManager] Heartbeat sent")
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
@@ -438,17 +584,22 @@ extension DeviceConnectionManager: CBPeripheralDelegate {
         }
         
         if let data = characteristic.value {
-            let bytes = data.map { String(format: "%02X", $0) }.joined(separator: " ")
-            print("[DeviceConnectionManager] Received from \(characteristic.uuid): [\(bytes)]")
+            let hexString = data.map { String(format: "%02X", $0) }.joined(separator: " ")
+            print("[SLink RX] Raw data from \(characteristic.uuid): [\(hexString)]")
             
-            if characteristic.uuid == DVRLinkUUID.fileTransferCharacteristic ||
-               characteristic.uuid == DVRLinkUUID.fileTransferChar2 ||
-               characteristic.uuid == DVRLinkUUID.fileTransferChar3 ||
-               characteristic.uuid == DVRLinkUUID.audioStreamCharacteristic {
-                if !hasReceivedFirstNotification {
-                    hasReceivedFirstNotification = true
-                    print("[DeviceConnectionManager] First notification received, starting keep-alive")
-                    startKeepAlive()
+            // Feed data to SLink parser for F0F2 (handle 0x0024)
+            if characteristic.uuid == DVRLinkUUID.fileTransferCharacteristic {
+                slinkPacketParser.feed(data)
+                
+                // Parse any complete packets
+                var parseResult = slinkPacketParser.parseNext()
+                while case .success(let packet) = parseResult {
+                    handleSLinkResponse(packet)
+                    parseResult = slinkPacketParser.parseNext()
+                }
+                
+                if case .invalid(let errorMsg) = parseResult {
+                    print("[DeviceConnectionManager] SLink parse error: \(errorMsg)")
                 }
             }
             
@@ -470,8 +621,12 @@ extension DeviceConnectionManager: CBPeripheralDelegate {
                 pendingNotificationSubscriptions = max(0, pendingNotificationSubscriptions - 1)
                 print("[DeviceConnectionManager] Pending subscriptions: \(pendingNotificationSubscriptions)")
                 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-                    self?.checkAndSendInitialCommand()
+                if pendingNotificationSubscriptions == 0 && !hasSentInitialCommand {
+                    hasSentInitialCommand = true
+                    print("[DeviceConnectionManager] All notifications enabled, starting SLink initialization...")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                        self?.startSLinkInitialization()
+                    }
                 }
             }
         }
@@ -485,25 +640,15 @@ extension DeviceConnectionManager: CBPeripheralDelegate {
 
         let descriptors = characteristic.descriptors ?? []
         print("[DeviceConnectionManager] \(characteristic.uuid): \(descriptors.count) descriptors")
-
-        for descriptor in descriptors {
-            print("[DeviceConnectionManager]   Descriptor: \(descriptor.uuid)")
-        }
     }
 
-    public func peripheral(_ peripheral: CBPeripheral, didWriteValueFor descriptor: CBDescriptor, error: Error?) {
+    public func peripheral(_ peripheral: CBPeripheral,
+                           didWriteValueFor characteristic: CBCharacteristic,
+                           error: Error?) {
         if let error = error {
-            print("[DeviceConnectionManager] Descriptor write error: \(error)")
+            print("[DeviceConnectionManager] Write failed: \(error)")
         } else {
-            print("[DeviceConnectionManager] Descriptor \(descriptor.uuid) write SUCCESS")
-        }
-    }
-
-    public func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
-        if let error = error {
-            print("[DeviceConnectionManager] Write error for \(characteristic.uuid): \(error)")
-        } else {
-            print("[DeviceConnectionManager] Write success for \(characteristic.uuid)")
+            print("[DeviceConnectionManager] Write confirmed for \(characteristic.uuid)")
         }
     }
 }

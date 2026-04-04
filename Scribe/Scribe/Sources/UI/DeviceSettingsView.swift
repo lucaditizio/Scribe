@@ -171,6 +171,10 @@ private struct ConnectionStatusCard: View {
         case .disconnected:           return "Not Connected"
         case .connecting:             return "Connecting…"
         case .connected:              return "Connected"
+        case .binding:                return "Binding…"
+        case .initializing:           return "Initializing…"
+        case .initialized:            return "Initialized"
+        case .bound:                  return "Bound"
         case .failed(let msg):        return "Error: \(msg)"
         case .reconnecting(let n):    return "Reconnecting (\(n)/5)…"
         }
@@ -178,8 +182,12 @@ private struct ConnectionStatusCard: View {
 
     private var statusColor: Color {
         switch connectionManager.connectionState {
-        case .connected:     return .green
+        case .connected,
+             .initialized,
+             .bound:         return .green
         case .connecting,
+             .binding,
+             .initializing,
              .reconnecting:  return .yellow
         case .failed:        return Theme.scribeRed
         case .disconnected:  return Color.secondary
