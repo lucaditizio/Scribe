@@ -183,7 +183,7 @@ class BleAudioRecorder: NSObject {
     
     private func encodeAndSaveAudio(samples: [Float]) -> URL? {
         guard !samples.isEmpty else {
-            print("[BleAudioRecorder] No audio data to encode")
+            print("[BleAudioRecorder] No audio data to save")
             return nil
         }
         
@@ -197,22 +197,22 @@ class BleAudioRecorder: NSObject {
         let filename = generateRecordingFilename()
         let outputURL = RecordingsStorage.recordingsDirectory().appendingPathComponent(filename)
         
-        let pcmData = convertFloatToPCM16(samples)
-        
-        guard encodePCMToM4A(pcmData: pcmData, outputURL: outputURL) else {
-            print("[BleAudioRecorder] Failed to encode audio to M4A")
+        do {
+            let data = Data(bytes: samples, count: samples.count * MemoryLayout<Float>.stride)
+            try data.write(to: outputURL)
+            print("[BleAudioRecorder] Audio saved to: \(outputURL.path) (\(samples.count) samples, 16kHz Float32)")
+            return outputURL
+        } catch {
+            print("[BleAudioRecorder] Failed to write PCM data: \(error)")
             return nil
         }
-        
-        print("[BleAudioRecorder] Audio saved to: \(outputURL.path)")
-        return outputURL
     }
     
     private func generateRecordingFilename() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
         let timestamp = formatter.string(from: Date())
-        return "Recording_\(timestamp).m4a"
+        return "Recording_\(timestamp).pcm"
     }
     
     private func convertFloatToPCM16(_ samples: [Float]) -> Data {
