@@ -1,0 +1,36 @@
+Task 06 - Directory Creation Test Evidence
+==========================================
+
+Date: 2026-04-04
+
+File Created:
+-------------
+Scribe/Scribe/Sources/Audio/RecordingsStorage.swift
+
+Implementation:
+--------------
+- recordingsDirectory() -> URL
+  Returns: Documents/Recordings/ URL using FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+
+- ensureRecordingsDirectoryExists() throws
+  Creates the Recordings subdirectory if it doesn't exist
+  Idempotent: returns early if directory already exists
+  Handles errors by throwing
+
+Build Status:
+------------
+BUILD FAILED - Pre-existing issue in AudioStreamReceiver.swift
+Error: "No such module 'Opus'" in AudioStreamReceiver.swift:3:8
+This is NOT related to the task 06 implementation.
+
+The new RecordingsStorage.swift file has NO diagnostics (verified via LSP).
+
+LSP Verification:
+----------------
+RecordingsStorage.swift: No diagnostics found (clean)
+
+Notes:
+------
+- Directory creation uses standard iOS Documents directory pattern (per AudioRecorder.swift)
+- Error handling is graceful (throws on failure)
+- Implementation is idempotent (safe to call multiple times)
