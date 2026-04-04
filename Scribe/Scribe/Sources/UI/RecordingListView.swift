@@ -83,7 +83,11 @@ struct RecordingListView: View {
                 }
                 .sheet(isPresented: $showingDeviceSettings) {
                     NavigationStack {
-                        DeviceSettingsView(bleRecorder: bleRecorder)
+                        DeviceSettingsView(
+                            bleRecorder: bleRecorder,
+                            connectionManager: connectionManager,
+                            scanner: scanner
+                        )
                             .toolbar {
                                 ToolbarItem(placement: .navigationBarLeading) {
                                     Button("Done") {

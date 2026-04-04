@@ -28,12 +28,10 @@ struct DeviceSettingsView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
 
-    init(bleRecorder: BleAudioRecorder) {
-        let scanner = BluetoothDeviceScanner()
-        let mgr = DeviceConnectionManager(scanner: scanner)
-        self.scanner = scanner              // ← same instance the manager holds
-        self.connectionManager = mgr
+    init(bleRecorder: BleAudioRecorder, connectionManager: DeviceConnectionManager, scanner: BluetoothDeviceScanner) {
         self.bleRecorder = bleRecorder
+        self.connectionManager = connectionManager
+        self.scanner = scanner
     }
 
     var body: some View {
@@ -398,8 +396,14 @@ private struct RSSIBadge: View {
 // MARK: - Preview
 
 #Preview {
+    let scanner = BluetoothDeviceScanner()
+    let connectionManager = DeviceConnectionManager(scanner: scanner)
     NavigationStack {
-        DeviceSettingsView(bleRecorder: BleAudioRecorder())
+        DeviceSettingsView(
+            bleRecorder: BleAudioRecorder(),
+            connectionManager: connectionManager,
+            scanner: scanner
+        )
     }
     .preferredColorScheme(.dark)
 }
