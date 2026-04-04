@@ -6,9 +6,19 @@ struct RecordingListView: View {
     @Query(sort: \Recording.createdAt, order: .reverse) private var recordings: [Recording]
     @Environment(\.colorScheme) var colorScheme
     
-    // Audio Engine State
-    @State private var audioRecorder = AudioRecorder()
+    private let scanner: BluetoothDeviceScanner
+    private let connectionManager: DeviceConnectionManager
+    
     @State private var showingDeviceSettings = false
+    @State private var currentDuration: TimeInterval = 0
+    @State private var isRecording = false
+    
+    init() {
+        let scanner = BluetoothDeviceScanner()
+        let mgr = DeviceConnectionManager(scanner: scanner)
+        self.scanner = scanner
+        self.connectionManager = mgr
+    }
     
     var body: some View {
         NavigationStack {
@@ -84,8 +94,8 @@ struct RecordingListView: View {
                 
                 // Floating Record Context
                 VStack {
-                    if audioRecorder.isRecording {
-                        Text(formatDuration(audioRecorder.currentTime))
+                    if isRecording {
+                        Text(formatDuration(currentDuration))
                             .font(.system(.title, design: .monospaced).weight(.bold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 16)
@@ -96,26 +106,38 @@ struct RecordingListView: View {
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                     
-                    RecordButtonView(audioRecorder: audioRecorder) { duration, sessionID in
-                        saveRecording(duration: duration, sessionID: sessionID)
+                    RecordButtonView(
+                        connectionManager: connectionManager,
+                        currentDuration: $currentDuration,
+                        isRecording: $isRecording
+                    ) { duration, fileURL in
+                        if let url = fileURL {
+                            saveRecording(duration: duration, fileURL: url)
+                        }
                     }
                 }
                 .padding(.bottom, 24)
             }
         }
     }
-
     
-    private func saveRecording(duration: TimeInterval, sessionID: String) {
+    private func saveRecording(duration: TimeInterval, fileURL: URL) {
+        let filename = fileURL.lastPathComponent
+        let id = filename.replacingOccurrences(of: ".m4a", with: "")
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        let timestamp = formatter.string(from: Date())
+        let title = "Recording \(timestamp)"
+        
         let newRecording = Recording(
-            id: sessionID,
-            title: "New Recording",
+            id: id,
+            title: title,
             duration: duration,
-            audioFilePath: "\(sessionID).m4a",
+            audioFilePath: filename,
             categoryTag: "#NOTE"
         )
         modelContext.insert(newRecording)
-        // Auto-save happens periodically in SwiftData, but we can force it if needed
         do {
             try modelContext.save()
         } catch {
