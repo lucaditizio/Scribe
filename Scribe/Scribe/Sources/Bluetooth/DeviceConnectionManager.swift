@@ -243,7 +243,13 @@ extension DeviceConnectionManager {
             guard let self else { return }
             self.connectionState = .disconnected
             self.addConnectionEvent(.disconnected, message: "Disconnected: \(errorDesc)")
-            
+
+            NotificationCenter.default.post(
+                name: .connectionStateDidChange,
+                object: self,
+                userInfo: ["state": ConnectionState.disconnected]
+            )
+
             if let error = error, self.connectedDevice != nil {
                 print("[DeviceConnectionManager] Will NOT auto-reconnect - waiting for user action")
             } else {

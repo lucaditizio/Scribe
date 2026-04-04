@@ -1,42 +1,40 @@
 import SwiftUI
 
 struct RecordButtonView: View {
-    @Bindable var audioRecorder: AudioRecorder
-    var onRecordingFinished: (TimeInterval, String) -> Void
+    @Bindable var bleRecorder: BleAudioRecorder
+    let connectionManager: DeviceConnectionManager
+    @Binding var currentDuration: TimeInterval
+    @Binding var isRecording: Bool
+    var onRecordingFinished: (TimeInterval, URL?) -> Void
     
-    // State for pulse animation
-    @State private var pulseScale: CGFloat = 1.0
+    private var isConnected: Bool {
+        switch connectionManager.connectionState {
+        case .connected, .initialized, .bound:
+            return true
+        default:
+            return false
+        }
+    }
     
     var body: some View {
-        Button(action: {
-            let finalizedSessionID = audioRecorder.toggleRecording()
-            if let finalizedSessionID = finalizedSessionID {
-                // Recording stopped, we have a duration and a file ID
-                // Wait briefly for recorder to fully stop and write file
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    onRecordingFinished(audioRecorder.currentTime, finalizedSessionID)
-                }
-            }
-        }) {
+        Button(action: toggleRecording) {
             ZStack {
-                // Pulse effect background
                 Circle()
                     .fill(Theme.scribeRed.opacity(0.3))
                     .frame(width: 80, height: 80)
-                    .scaleEffect(audioRecorder.isRecording ? 1.5 : 1.0)
-                    .opacity(audioRecorder.isRecording ? 0 : 0.8)
+                    .scaleEffect(isRecording ? 1.5 : 1.0)
+                    .opacity(isRecording ? 0 : 0.8)
                     .animation(
-                        audioRecorder.isRecording ? Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: false) : .default,
-                        value: audioRecorder.isRecording
+                        isRecording ? Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: false) : .default,
+                        value: isRecording
                     )
                 
                 Circle()
-                    .fill(audioRecorder.isRecording ? Theme.scribeRed.opacity(0.8) : Theme.scribeRed)
+                    .fill(isRecording ? Theme.scribeRed.opacity(0.8) : Theme.scribeRed)
                     .frame(width: 70, height: 70)
                     .shadow(color: Theme.scribeRed.opacity(0.5), radius: 10, x: 0, y: 5)
                 
-                // Icon state change
-                if audioRecorder.isRecording {
+                if isRecording {
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .fill(Color.white)
                         .frame(width: 24, height: 24)
@@ -46,6 +44,28 @@ struct RecordButtonView: View {
                         .foregroundColor(.white)
                 }
             }
+        }
+        .disabled(!isConnected)
+        .opacity(isConnected ? 1.0 : 0.5)
+        .onChange(of: bleRecorder.state) { _, newState in
+            isRecording = (newState == .recording)
+        }
+        .onChange(of: bleRecorder.currentDuration) { _, newDuration in
+            currentDuration = newDuration
+        }
+    }
+    
+    private func toggleRecording() {
+        switch bleRecorder.state {
+        case .idle:
+            bleRecorder.startRecording()
+        case .recording:
+            let fileURL = bleRecorder.stopRecording()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                onRecordingFinished(bleRecorder.currentDuration, fileURL)
+            }
+        case .stopped:
+            bleRecorder.startRecording()
         }
     }
 }

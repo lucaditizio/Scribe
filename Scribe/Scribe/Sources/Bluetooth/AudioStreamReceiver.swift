@@ -1,5 +1,7 @@
 import Foundation
 import CoreBluetooth
+import AVFoundation
+import Opus
 
 // MARK: - Supporting types
 
@@ -53,16 +55,24 @@ public class AudioStreamReceiver {
     private let audioQueue = DispatchQueue(label: "com.scribe.audioStream", qos: .userInitiated)
     private let audioBuffer: CircularAudioBuffer
     private var notificationObserver: NSObjectProtocol?
+    private var decoder: OpusAudioDecoder?
 
     public var state: AudioStreamState = .idle
     public var isStreaming: Bool { state == .streaming }
     public var lastFrameTimestamp: Date?
+    public var lastDecodedSamples: [Float] = []
 
     private let maxBufferFrames = 200
 
     public init(connectionManager: DeviceConnectionManager? = nil) {
         self.connectionManager = connectionManager
         self.audioBuffer = CircularAudioBuffer(maxFrames: maxBufferFrames)
+        do {
+            self.decoder = try OpusAudioDecoder(sampleRate: 16000, channels: 1)
+        } catch {
+            print("[AudioStreamReceiver] Failed to initialize Opus decoder: \(error)")
+            self.state = .error("Failed to initialize Opus decoder")
+        }
     }
 
     deinit {
@@ -139,9 +149,27 @@ public class AudioStreamReceiver {
     private func handleIncomingAudioData(_ data: Data) {
         audioQueue.async { [weak self] in
             guard let self, self.state == .streaming else { return }
-            let frame = AudioFrame(data: data)
-            self.audioBuffer.enqueue(frame)
-            self.lastFrameTimestamp = frame.timestamp
+            guard let decoder = self.decoder else {
+                print("[AudioStreamReceiver] Decoder not available, skipping packet")
+                return
+            }
+
+            do {
+                let pcmSamples = try decoder.decode(data)
+                self.lastDecodedSamples = pcmSamples
+
+                let pcmData = pcmSamples.withUnsafeBufferPointer { buffer in
+                    Data(buffer: buffer)
+                }
+
+                let frame = AudioFrame(data: pcmData, timestamp: Date(), sampleRate: 16000)
+                self.audioBuffer.enqueue(frame)
+                self.lastFrameTimestamp = frame.timestamp
+
+                print("[AudioStreamReceiver] Processed packet: \(data.count) bytes -> \(pcmSamples.count) PCM samples")
+            } catch {
+                print("[AudioStreamReceiver] Failed to decode audio packet (\(data.count) bytes): \(error)")
+            }
         }
     }
 }
@@ -200,33 +228,93 @@ public final class CircularAudioBuffer {
 //
 // Decodes Opus-encoded packets received from the DVR microphone over BLE into
 // raw Int16 PCM samples, then converts to Float32 in [-1, 1] for CoreML models.
-//
-// NOTE: This decoder requires libopus to be linked. The AI DVR Link app bundles
-// `opus.framework` and `opus_flutter_ios.framework`. When those frameworks are
-// added to the Scribe target, uncomment the implementation below.
-// Until then this stub returns an empty buffer so the pipeline compiles cleanly.
+// Uses SwiftOpus package (https://github.com/alta/swift-opus.git).
 
 public final class OpusAudioDecoder {
     private let sampleRate: Int
     private let channels: Int
+    private let decoder: Opus.Decoder
+    private let audioFormat: AVAudioFormat
 
-    /// Number of PCM frames per 20 ms Opus packet at the configured sample rate.
     public var frameSizePerPacket: Int { sampleRate / 50 }
+    public var expectedSamplesPerPacket: Int { frameSizePerPacket * channels }
 
-    public init(sampleRate: Int = 16000, channels: Int = 1) {
+    public init(sampleRate: Int = 16000, channels: Int = 1) throws {
         self.sampleRate = sampleRate
         self.channels = channels
-        // TODO: initialise libopus decoder handle once opus.framework is linked
-        print("[OpusAudioDecoder] Stub initialised — link opus.framework to enable decoding")
+
+        guard let format = AVAudioFormat(
+            opusPCMFormat: .float32,
+            sampleRate: sampleRate == 16000 ? .opus16khz : .opus48khz,
+            channels: AVAudioChannelCount(channels)
+        ) else {
+            throw AudioStreamError.opusDecodingError
+        }
+        self.audioFormat = format
+        self.decoder = try Opus.Decoder(format: format)
+        print("[OpusAudioDecoder] Initialized with sampleRate=\(sampleRate), channels=\(channels)")
     }
 
-    /// Decode one Opus packet into Float32 PCM samples.
-    /// - Returns: Array of Float32 samples normalised to [-1.0, 1.0].
+    private func stripOpusHeader(_ data: Data) -> Data {
+        guard data.count >= 4 else { return data }
+
+        let headerPattern1: [UInt8] = [0xFF, 0xF3, 0x48, 0xC4]
+        let headerPattern2: [UInt8] = [0xFF, 0xF3]
+        let bytes = [UInt8](data)
+
+        if data.count >= 4,
+           bytes[0] == headerPattern1[0],
+           bytes[1] == headerPattern1[1],
+           bytes[2] == headerPattern1[2],
+           bytes[3] == headerPattern1[3] {
+            return data.subdata(in: 4..<data.count)
+        }
+
+        if bytes[0] == headerPattern2[0],
+           bytes[1] == headerPattern2[1] {
+            let headerLength = min(4, data.count)
+            return data.subdata(in: headerLength..<data.count)
+        }
+
+        return data
+    }
+
     public func decode(_ data: Data) throws -> [Float] {
-        guard !data.isEmpty else { throw AudioStreamError.opusDecodingError }
-        // TODO: replace stub with real libopus call once framework is linked:
-        //   let n = opus_decode(handle, bytes, Int32(data.count), &pcm, Int32(frameSizePerPacket), 0)
-        //   return pcm.map { Float($0) / 32768.0 }
-        return [Float](repeating: 0, count: frameSizePerPacket * channels)
+        guard !data.isEmpty else {
+            print("[OpusAudioDecoder] Error: Empty data received")
+            throw AudioStreamError.opusDecodingError
+        }
+
+        let opusData = stripOpusHeader(data)
+
+        guard opusData.count > 0 else {
+            print("[OpusAudioDecoder] Error: No data after header stripping")
+            throw AudioStreamError.opusDecodingError
+        }
+
+        do {
+            let pcmBuffer = try decoder.decode(opusData)
+            let frameLength = Int(pcmBuffer.frameLength)
+            let channelCount = Int(pcmBuffer.format.channelCount)
+            let totalSamples = frameLength * channelCount
+
+            guard let audioBuffer = pcmBuffer.audioBufferList.pointee.mBuffers.mData else {
+                print("[OpusAudioDecoder] Error: No audio buffer data")
+                throw AudioStreamError.opusDecodingError
+            }
+
+            let floatPointer = audioBuffer.bindMemory(to: Float.self, capacity: totalSamples)
+            var floatArray = [Float](repeating: 0, count: totalSamples)
+            for i in 0..<totalSamples {
+                floatArray[i] = floatPointer[i]
+            }
+
+            print("[OpusAudioDecoder] Decoded \(opusData.count) bytes -> \(floatArray.count) samples")
+
+            return floatArray
+        } catch {
+            print("[OpusAudioDecoder] Decoding error: \(error)")
+            throw AudioStreamError.opusDecodingError
+        }
     }
 }

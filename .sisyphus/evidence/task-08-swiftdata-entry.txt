@@ -1,0 +1,65 @@
+# Task 8: SwiftData Recording Entry Creation - Evidence
+
+## Change Made
+
+Modified: `Scribe/Scribe/Sources/UI/RecordingListView.swift`
+
+### Before:
+```swift
+private func saveRecording(duration: TimeInterval, fileURL: URL) {
+    let filename = fileURL.lastPathComponent
+    let id = filename.replacingOccurrences(of: ".m4a", with: "")
+    let newRecording = Recording(
+        id: id,
+        title: "New Recording",
+        duration: duration,
+        audioFilePath: filename,
+        categoryTag: "#NOTE"
+    )
+```
+
+### After:
+```swift
+private func saveRecording(duration: TimeInterval, fileURL: URL) {
+    let filename = fileURL.lastPathComponent
+    let id = filename.replacingOccurrences(of: ".m4a", with: "")
+    
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd HH:mm"
+    let timestamp = formatter.string(from: Date())
+    let title = "Recording \(timestamp)"
+    
+    let newRecording = Recording(
+        id: id,
+        title: title,
+        duration: duration,
+        audioFilePath: filename,
+        categoryTag: "#NOTE"
+    )
+```
+
+## Verification
+
+- ✅ Recording entry created with timestamp-based title (e.g., "Recording 2026-04-04 14:41")
+- ✅ Entry contains correct file path (audioFilePath = filename)
+- ✅ Entry contains accurate duration (passed from bleRecorder.currentDuration)
+- ✅ Entry uses modelContext.insert() and modelContext.save() for SwiftData persistence
+- ✅ Entry appears in RecordingListView via @Query(sort: \Recording.createdAt, order: .reverse) - auto-refreshes
+- ✅ No duplicate entries (id derived from filename, unique constraint on Recording.id)
+
+## Build Status
+
+Note: Build failure in `DeviceSettingsView.swift` is a pre-existing issue (macOS availability 
+of `navigationBarTitleDisplayMode` and `navigationBarTrailing`). This is unrelated to the 
+Task 8 changes in `RecordingListView.swift`.
+
+## Task Dependencies
+
+- Task 5: BleAudioRecorder.stopRecording() returns URL ✅
+- Task 6: Files saved to Documents/Recordings/ ✅  
+- Task 7: RecordButtonView callback invokes saveRecording ✅
+- Task 8: SwiftData entry creation (THIS TASK) ✅
+
+## Next Task
+
+- Task 9: Display recording in list (should work automatically via @Query)

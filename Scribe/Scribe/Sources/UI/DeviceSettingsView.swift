@@ -23,17 +23,17 @@ struct DeviceSettingsView: View {
     // alongside connectionManager — guaranteeing one shared peripheral map.
     private let scanner: BluetoothDeviceScanner
     private let connectionManager: DeviceConnectionManager
-    private let fileSyncService: DeviceFileSyncService
+    @Bindable var bleRecorder: BleAudioRecorder
 
     @State private var showingError = false
     @State private var errorMessage = ""
 
-    init() {
+    init(bleRecorder: BleAudioRecorder) {
         let scanner = BluetoothDeviceScanner()
         let mgr = DeviceConnectionManager(scanner: scanner)
         self.scanner = scanner              // ← same instance the manager holds
         self.connectionManager = mgr
-        self.fileSyncService = DeviceFileSyncService(connectionManager: mgr)
+        self.bleRecorder = bleRecorder
     }
 
     var body: some View {
@@ -44,7 +44,13 @@ struct DeviceSettingsView: View {
                 ConnectionStatusCard(connectionManager: connectionManager)
                     .scribeCardStyle(scheme: colorScheme)
 
-                // ── 2. Device List Card ───────────────────────────────────
+                // ── 2. Recording Status Card ──────────────────────────────
+                if bleRecorder.state == .recording {
+                    RecordingStatusCard(bleRecorder: bleRecorder)
+                        .scribeCardStyle(scheme: colorScheme)
+                }
+
+                // ── 3. Device List Card ───────────────────────────────────
                 DeviceListCard(
                     scanner: scanner,
                     connectionManager: connectionManager,
@@ -52,16 +58,7 @@ struct DeviceSettingsView: View {
                 )
                 .scribeCardStyle(scheme: colorScheme)
 
-                // ── 3. File Sync Card ─────────────────────────────────────
-                FileSyncCard(fileSyncService: fileSyncService) {
-                    do {
-                        try fileSyncService.syncRecordings()
-                    } catch {
-                        errorMessage = error.localizedDescription
-                        showingError = true
-                    }
-                }
-                .scribeCardStyle(scheme: colorScheme)
+
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 20)
@@ -195,6 +192,59 @@ private struct ConnectionStatusCard: View {
     }
 }
 
+// MARK: - Recording Status Card
+
+private struct RecordingStatusCard: View {
+    @Bindable var bleRecorder: BleAudioRecorder
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("Recording", systemImage: "waveform")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+            
+            HStack(spacing: 12) {
+                Circle()
+                    .fill(Theme.scribeRed)
+                    .frame(width: 10, height: 10)
+                    .shadow(color: Theme.scribeRed.opacity(0.6), radius: 4)
+                    .opacity(bleRecorder.state == .recording ? 1 : 0.3)
+                    .animation(
+                        bleRecorder.state == .recording
+                            ? Animation.easeInOut(duration: 0.8).repeatForever(autoreverses: true)
+                            : .default,
+                        value: bleRecorder.state
+                    )
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Recording in Progress")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    
+                    Text(formatDuration(bleRecorder.currentDuration))
+                        .font(.system(.title3, design: .monospaced).weight(.medium))
+                        .foregroundStyle(Theme.scribeRed)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "mic.fill")
+                    .font(.title2)
+                    .foregroundStyle(Theme.scribeRed.opacity(0.8))
+            }
+        }
+    }
+    
+    private func formatDuration(_ duration: TimeInterval) -> String {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.minute, .second]
+        formatter.unitsStyle = .positional
+        formatter.zeroFormattingBehavior = .pad
+        return formatter.string(from: duration) ?? "00:00"
+    }
+}
+
 // MARK: - Device List Card
 
 private struct DeviceListCard: View {
@@ -317,86 +367,6 @@ private struct DeviceRow: View {
     }
 }
 
-// MARK: - File Sync Card
-
-private struct FileSyncCard: View {
-    let fileSyncService: DeviceFileSyncService
-    let onSync: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label("File Transfer", systemImage: "arrow.down.circle")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-
-            // Sync button
-            Button(action: onSync) {
-                HStack(spacing: 10) {
-                    Image(systemName: fileSyncService.isTransferring
-                          ? "arrow.triangle.2.circlepath"
-                          : "arrow.down.to.line")
-                        .font(.title3)
-                        .foregroundStyle(fileSyncService.isTransferring ? .secondary : Theme.scribeRed)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(fileSyncService.isTransferring
-                             ? syncStatusText
-                             : "Sync Recordings")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-
-                        if !fileSyncService.isTransferring, !fileSyncService.files.isEmpty {
-                            Text("\(fileSyncService.files.count) file(s) available")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    Spacer()
-
-                    if fileSyncService.isTransferring {
-                        ProgressView(value: fileSyncService.transferProgress)
-                            .progressViewStyle(.circular)
-                            .tint(Theme.scribeRed)
-                            .controlSize(.small)
-                    } else {
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-                .padding(.vertical, 4)
-            }
-            .buttonStyle(.plain)
-            .disabled(fileSyncService.isTransferring)
-
-            // Progress bar shown during transfer
-            if fileSyncService.isTransferring {
-                ProgressView(value: fileSyncService.transferProgress)
-                    .progressViewStyle(.linear)
-                    .tint(Theme.scribeRed)
-                    .animation(.easeInOut, value: fileSyncService.transferProgress)
-            }
-
-            Text("Downloads recordings stored on the microphone's flash drive")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .padding(.top, 2)
-        }
-    }
-
-    private var syncStatusText: String {
-        switch fileSyncService.state {
-        case .enumerating:          return "Reading device files…"
-        case .transferring(let f):  return f
-        case .completed:            return "Sync Complete"
-        case .failed(let e):        return "Error: \(e)"
-        default:                    return "Syncing…"
-        }
-    }
-}
-
 // MARK: - RSSI Signal Badge
 
 private struct RSSIBadge: View {
@@ -429,7 +399,7 @@ private struct RSSIBadge: View {
 
 #Preview {
     NavigationStack {
-        DeviceSettingsView()
+        DeviceSettingsView(bleRecorder: BleAudioRecorder())
     }
     .preferredColorScheme(.dark)
 }

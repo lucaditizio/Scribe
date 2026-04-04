@@ -1,32 +1,100 @@
 {
-  "active_plan": "/Users/lucaditizio/github/Scribe/.sisyphus/plans/bluetooth-connection-binding.md",
-  "started_at": "2026-04-04T07:44:39.660Z",
+  "active_plan": "/Users/lucaditizio/github/Scribe/.sisyphus/plans/audio-recording-and-sync.md",
+  "started_at": "2026-04-04T12:47:58.736Z",
   "session_ids": [
     "ses_2a8a92dfdffeqZBehuYfNalaJe",
-    "ses_2a88b6ad5ffe07Nt8X7ctqx2Ek",
-    "ses_2a88b3b42ffelgkU2supYm0Dix",
-    "ses_2a883eea0ffe4w4EKIwFOb2DvT",
-    "ses_2a87e4894ffecmFHmjDfltgZGB",
-    "ses_2a8781849ffe1PTEPxwgxdtxUB",
-    "ses_2a8704b0affea521XA3LF54O5C",
-    "ses_2a86a3137ffeE3qCP0SYBOmprf",
-    "ses_2a8138a01ffelGT2LbYDBv8C3I",
-    "ses_2a7f306e4ffe3ZihQvYPlar3nQ",
-    "ses_2a7efeba0ffeT6eDxGWvly0F1I",
-    "ses_2a7b6d9a7ffe9ugnFHu9XFJghj",
-    "ses_2a7b0e6d3ffe3Afjv1t4ir9bIb"
+    "ses_2a774d434ffeocYIQoI1naRi4D",
+    "ses_2a77497f5ffekCVdmKPrZ0SGx7",
+    "ses_2a775110cffeTVRWlqkHAN7Qji",
+    "ses_2a76f11b2ffeTbKTx8y1cKXH8D",
+    "ses_2a76f9680ffeKQ0H5iaGe42Bzb",
+    "ses_2a7645ca1ffeeUQ8O9QMwFHEfN",
+    "ses_2a75a54e1ffeeVpRkHHNaJrLes",
+    "ses_2a753f64bffexCgxp0U9N7Tu0K",
+    "ses_2a750b9f1ffe49GImhZX4Wy9al",
+    "ses_2a74b8fb0ffeZ8z01Pv5QLs4Qh",
+    "ses_2a74aed9effeTg9KYNUvBj5Kpr",
+    "ses_2a74a5658ffeI98xx2jM0es7Sb",
+    "ses_2a74204ccffe50xnDz8E10JkWQ",
+    "ses_2a7413352ffeXKrqc7NljvnX4u",
+    "ses_2a74195dcffenhX8KYv8V6iqKO",
+    "ses_2a741d379ffeoumsNIMrX1JjKk"
   ],
-  "plan_name": "bluetooth-connection-binding",
+  "plan_name": "audio-recording-and-sync",
   "agent": "atlas",
+  "current_wave": "Wave 1",
+  "completed_tasks": [],
   "task_sessions": {
     "todo:1": {
       "task_key": "todo:1",
       "task_label": "1",
-      "task_title": "Capture Complete DVR App bluetoothd Logs",
-      "session_id": "ses_2a88b6ad5ffe07Nt8X7ctqx2Ek",
+      "task_title": "Integrate SwiftOpus Package for Opus Decoding",
+      "session_id": "ses_2a775110cffeTVRWlqkHAN7Qji",
       "agent": "Sisyphus-Junior",
-      "category": "writing",
-      "updated_at": "2026-04-04T07:47:06.846Z"
+      "category": "deep",
+      "updated_at": "2026-04-04T12:53:52.301Z"
+    },
+    "todo:4": {
+      "task_key": "todo:4",
+      "task_label": "4",
+      "task_title": "Implement Opus → PCM Decoding in AudioStreamReceiver",
+      "session_id": "ses_2a76f9680ffeKQ0H5iaGe42Bzb",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-04T13:06:16.977Z"
+    },
+    "todo:5": {
+      "task_key": "todo:5",
+      "task_label": "5",
+      "task_title": "Create BleAudioRecorder Service for Live Recording",
+      "session_id": "ses_2a7645ca1ffeeUQ8O9QMwFHEfN",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-04T13:17:33.264Z"
+    },
+    "todo:7": {
+      "task_key": "todo:7",
+      "task_label": "7",
+      "task_title": "Connect RecordButtonView to BleAudioRecorder",
+      "session_id": "ses_2a75a54e1ffeeVpRkHHNaJrLes",
+      "agent": "Sisyphus-Junior",
+      "category": "visual-engineering",
+      "updated_at": "2026-04-04T13:24:36.780Z"
+    },
+    "todo:8": {
+      "task_key": "todo:8",
+      "task_label": "8",
+      "task_title": "Create SwiftData Recording Entry on Recording Stop",
+      "session_id": "ses_2a753f64bffexCgxp0U9N7Tu0K",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-04-04T13:28:10.473Z"
+    },
+    "todo:9": {
+      "task_key": "todo:9",
+      "task_label": "9",
+      "task_title": "Display Recordings in RecordingListView",
+      "session_id": "ses_2a750b9f1ffe49GImhZX4Wy9al",
+      "agent": "Sisyphus-Junior",
+      "category": "visual-engineering",
+      "updated_at": "2026-04-04T13:33:52.009Z"
+    },
+    "todo:10": {
+      "task_key": "todo:10",
+      "task_label": "10",
+      "task_title": "Connect Recording Playback to AudioPlayer",
+      "session_id": "ses_2a74a5658ffeI98xx2jM0es7Sb",
+      "agent": "Sisyphus-Junior",
+      "category": "visual-engineering",
+      "updated_at": "2026-04-04T13:44:27.323Z"
+    },
+    "final-wave:f1": {
+      "task_key": "final-wave:f1",
+      "task_label": "F1",
+      "task_title": "**Plan Compliance Audit** — `oracle`",
+      "session_id": "ses_2a74204ccffe50xnDz8E10JkWQ",
+      "agent": "oracle",
+      "updated_at": "2026-04-04T13:48:22.982Z"
     }
   }
 }

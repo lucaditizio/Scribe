@@ -1,0 +1,169 @@
+# Task 9: Display Recordings in RecordingListView - Evidence
+
+## Verification Summary
+
+**Status: COMPLETE** - All acceptance criteria are already implemented.
+
+## Implementation Analysis
+
+### RecordingListView.swift (Lines 1-171)
+
+1. **@Query for SwiftData** ✅
+   ```swift
+   @Query(sort: \Recording.createdAt, order: .reverse) private var recordings: [Recording]
+   ```
+   - Uses SwiftData @Query macro for automatic data fetching
+   - Sorted by createdAt in reverse order (newest first)
+   - Auto-refreshes when SwiftData changes
+
+2. **List Display** ✅
+   ```swift
+   ForEach(recordings) { recording in
+       NavigationLink(destination: RecordingDetailView(recording: recording)) {
+           RecordingCardView(recording: recording)
+       }
+   }
+   ```
+   - Displays all recordings from SwiftData
+   - NavigationLink to RecordingDetailView
+   - Uses RecordingCardView for each item
+
+3. **Empty State** ✅
+   ```swift
+   if recordings.isEmpty {
+       VStack(spacing: 16) {
+           Image(systemName: "mic.slash")
+           Text("No recordings yet.")
+       }
+   }
+   ```
+
+4. **SwiftData Entry Creation** ✅
+   ```swift
+   private func saveRecording(duration: TimeInterval, fileURL: URL) {
+       let formatter = DateFormatter()
+       formatter.dateFormat = "yyyy-MM-dd HH:mm"
+       let timestamp = formatter.string(from: Date())
+       let title = "Recording \(timestamp)"
+       
+       let newRecording = Recording(
+           id: id,
+           title: title,
+           duration: duration,
+           audioFilePath: filename,
+           categoryTag: "#NOTE"
+       )
+       modelContext.insert(newRecording)
+       try modelContext.save()
+   }
+   ```
+
+### RecordingCardView.swift (Lines 1-62)
+
+1. **Title Display** ✅
+   ```swift
+   Text(recording.title)
+       .font(.headline)
+       .fontWeight(.bold)
+       .lineLimit(2)
+   ```
+
+2. **Duration Display** ✅
+   ```swift
+   Text(formatDuration(recording.duration))
+       .font(.subheadline)
+       .fontWeight(.medium)
+   ```
+   - Formatted as HH:MM:SS or MM:SS
+
+3. **Category Tag** ✅
+   ```swift
+   Text(recording.categoryTag)
+       .font(.caption)
+       .fontWeight(.bold)
+       .background(Theme.scribeRed.opacity(0.15))
+       .foregroundColor(Theme.scribeRed)
+   ```
+
+4. **Created Date** ✅
+   ```swift
+   Text(recording.createdAt, style: .date)
+   Text(recording.createdAt, style: .time)
+   ```
+
+5. **Card Styling** ✅
+   ```swift
+   .scribeCardStyle(scheme: colorScheme)
+   ```
+
+### RecordingDetailView.swift (Lines 1-485)
+
+1. **Navigation Title** ✅
+   ```swift
+   .navigationTitle(recording.title)
+   ```
+
+2. **Audio Player Integration** ✅
+   ```swift
+   @State private var audioPlayer = AudioPlayer()
+   audioPlayer.load(recording: recording)
+   ```
+
+3. **Waveform Visualization** ✅
+   ```swift
+   WaveformView(
+       samples: waveformAnalyzer.samples,
+       progress: CGFloat(audioPlayer.currentTime / audioPlayer.duration)
+   )
+   ```
+
+4. **Playback Controls** ✅
+   - Play/Pause button
+   - Skip forward/backward (15 seconds)
+   - Speed cycling (1.0x, 1.5x, 2.0x)
+
+### Recording.swift Model (Lines 1-37)
+
+All required fields present:
+- `id: String` (@Attribute(.unique))
+- `title: String`
+- `duration: TimeInterval`
+- `createdAt: Date`
+- `audioFilePath: String`
+- `categoryTag: String`
+
+## Build Verification
+
+```
+** BUILD SUCCEEDED **
+```
+
+## Acceptance Criteria Verification
+
+| Criteria | Status | Evidence |
+|----------|--------|----------|
+| RecordingListView shows all SwiftData Recording entries | ✅ PASS | @Query macro fetches all recordings |
+| New recordings appear immediately after creation | ✅ PASS | @Query auto-refreshes on SwiftData changes |
+| RecordingCardView shows: title, duration, createdAt, categoryTag | ✅ PASS | All fields displayed in card |
+| Tapping card navigates to RecordingDetailView | ✅ PASS | NavigationLink wraps RecordingCardView |
+| Build succeeds | ✅ PASS | xcodebuild returns BUILD SUCCEEDED |
+
+## @Query Auto-Refresh Mechanism
+
+SwiftData's @Query property wrapper automatically observes the ModelContext:
+1. When `modelContext.insert(newRecording)` is called
+2. And `modelContext.save()` is invoked
+3. @Query detects the change and refreshes the `recordings` array
+4. SwiftUI updates the List automatically
+
+No manual refresh needed.
+
+## Dependencies
+
+- Task 8 (SwiftData entry creation) ✅ COMPLETE
+- Task 7 (RecordButtonView integration) ✅ COMPLETE
+- Task 5 (BleAudioRecorder service) ✅ COMPLETE
+
+## Next Task
+
+- Task 10: Connect recording playback to AudioPlayer

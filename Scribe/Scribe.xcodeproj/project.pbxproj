@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		05239D242F8134B1002DAF96 /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 05239D232F8134B1002DAF96 /* FluidAudio */; };
 		05239D272F813522002DAF96 /* LLM in Frameworks */ = {isa = PBXBuildFile; productRef = 05239D262F813522002DAF96 /* LLM */; };
+		05F3A8B12F8134B1002DAF96 /* Opus in Frameworks */ = {isa = PBXBuildFile; productRef = 05F3A8B02F8134B1002DAF96 /* Opus */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +31,7 @@
 			files = (
 				05239D272F813522002DAF96 /* LLM in Frameworks */,
 				05239D242F8134B1002DAF96 /* FluidAudio in Frameworks */,
+				05F3A8B12F8134B1002DAF96 /* Opus in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -74,6 +76,7 @@
 			packageProductDependencies = (
 				05239D232F8134B1002DAF96 /* FluidAudio */,
 				05239D262F813522002DAF96 /* LLM */,
+				05F3A8B02F8134B1002DAF96 /* Opus */,
 			);
 			productName = Scribe;
 			productReference = 05E3774C2F65CA7B002EF9A6 /* Scribe.app */;
@@ -106,6 +109,7 @@
 			packageReferences = (
 				05239D222F8134B1002DAF96 /* XCRemoteSwiftPackageReference "FluidAudio" */,
 				05239D252F813522002DAF96 /* XCRemoteSwiftPackageReference "LLM" */,
+				05F3A8AF2F8134B1002DAF96 /* XCRemoteSwiftPackageReference "swift-opus" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 05E3774D2F65CA7B002EF9A6 /* Products */;
@@ -400,6 +404,14 @@
 				version = 2.1.0;
 			};
 		};
+		05F3A8AF2F8134B1002DAF96 /* XCRemoteSwiftPackageReference "swift-opus" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/alta/swift-opus.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.0.2;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -412,6 +424,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 05239D252F813522002DAF96 /* XCRemoteSwiftPackageReference "LLM" */;
 			productName = LLM;
+		};
+		05F3A8B02F8134B1002DAF96 /* Opus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 05F3A8AF2F8134B1002DAF96 /* XCRemoteSwiftPackageReference "swift-opus" */;
+			productName = Opus;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

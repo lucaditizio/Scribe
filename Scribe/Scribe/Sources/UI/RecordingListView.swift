@@ -8,6 +8,7 @@ struct RecordingListView: View {
     
     private let scanner: BluetoothDeviceScanner
     private let connectionManager: DeviceConnectionManager
+    private let bleRecorder: BleAudioRecorder
     
     @State private var showingDeviceSettings = false
     @State private var currentDuration: TimeInterval = 0
@@ -16,8 +17,10 @@ struct RecordingListView: View {
     init() {
         let scanner = BluetoothDeviceScanner()
         let mgr = DeviceConnectionManager(scanner: scanner)
+        let recorder = BleAudioRecorder()
         self.scanner = scanner
         self.connectionManager = mgr
+        self.bleRecorder = recorder
     }
     
     var body: some View {
@@ -80,7 +83,7 @@ struct RecordingListView: View {
                 }
                 .sheet(isPresented: $showingDeviceSettings) {
                     NavigationStack {
-                        DeviceSettingsView()
+                        DeviceSettingsView(bleRecorder: bleRecorder)
                             .toolbar {
                                 ToolbarItem(placement: .navigationBarLeading) {
                                     Button("Done") {
@@ -107,6 +110,7 @@ struct RecordingListView: View {
                     }
                     
                     RecordButtonView(
+                        bleRecorder: bleRecorder,
                         connectionManager: connectionManager,
                         currentDuration: $currentDuration,
                         isRecording: $isRecording
