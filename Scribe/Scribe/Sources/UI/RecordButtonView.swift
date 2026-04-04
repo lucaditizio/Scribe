@@ -45,7 +45,6 @@ struct RecordButtonView: View {
                 }
             }
         }
-        .disabled(!isConnected)
         .opacity(isConnected ? 1.0 : 0.5)
         .onChange(of: bleRecorder.state) { _, newState in
             isRecording = (newState == .recording)
@@ -60,9 +59,9 @@ struct RecordButtonView: View {
         case .idle:
             bleRecorder.startRecording()
         case .recording:
-            let fileURL = bleRecorder.stopRecording()
+            let result = bleRecorder.stopRecording()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                onRecordingFinished(bleRecorder.currentDuration, fileURL)
+                onRecordingFinished(result.duration, result.url)
             }
         case .stopped:
             bleRecorder.startRecording()

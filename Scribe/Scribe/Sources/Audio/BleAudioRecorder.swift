@@ -1,7 +1,6 @@
 import Foundation
 import AVFoundation
 import Observation
-import SwiftData
 
 enum RecordingState: Equatable {
     case idle
@@ -22,13 +21,11 @@ class BleAudioRecorder: NSObject {
     private let audioQueue = DispatchQueue(label: "com.scribe.bleAudioRecorder", qos: .userInitiated)
     private var decoder: OpusAudioDecoder?
     private var audioBuffer: [Float] = []
-    private var modelContext: ModelContext?
 
     private let sampleRate: Double = 16000
     private let channels: UInt32 = 1
-    
-    init(modelContext: ModelContext? = nil) {
-        self.modelContext = modelContext
+
+    override init() {
         super.init()
         setupDecoder()
         setupConnectionObserver()
@@ -87,10 +84,10 @@ class BleAudioRecorder: NSObject {
         print("[BleAudioRecorder] Recording started")
     }
     
-    func stopRecording() -> URL? {
+    func stopRecording() -> (url: URL?, duration: TimeInterval) {
         guard state == .recording else {
             print("[BleAudioRecorder] Cannot stop recording: not currently recording")
-            return nil
+            return (nil, 0)
         }
 
         state = .stopped
@@ -103,38 +100,11 @@ class BleAudioRecorder: NSObject {
         let samples = audioBuffer
         let url = encodeAndSaveAudio(samples: samples)
 
-        if let fileURL = url {
-            createRecordingEntry(fileURL: fileURL, duration: duration)
-        }
-
         audioBuffer.removeAll()
         recordingStartTime = nil
         currentDuration = 0
 
-        return url
-    }
-
-    private func createRecordingEntry(fileURL: URL, duration: TimeInterval) {
-        guard let context = modelContext else {
-            print("[BleAudioRecorder] No ModelContext available, skipping SwiftData entry creation")
-            return
-        }
-
-        let relativePath = fileURL.lastPathComponent
-        let recording = Recording(
-            title: "Recording \(formatDate(Date()))",
-            duration: duration,
-            audioFilePath: relativePath
-        )
-
-        context.insert(recording)
-
-        do {
-            try context.save()
-            print("[BleAudioRecorder] SwiftData entry created for recording: \(recording.id)")
-        } catch {
-            print("[BleAudioRecorder] Failed to save SwiftData entry: \(error)")
-        }
+        return (url, duration)
     }
 
     private func formatDate(_ date: Date) -> String {

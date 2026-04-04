@@ -158,14 +158,25 @@ struct RecordingListView: View {
     }
     
     private func deleteRecordings(offsets: IndexSet) {
-        let documentPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let recordingsPath = RecordingsStorage.recordingsDirectory()
         for index in offsets {
             let recording = recordings[index]
-            let fileURL = documentPath.appendingPathComponent(recording.audioFilePath)
-            try? FileManager.default.removeItem(at: fileURL)
+            let fileURL = recordingsPath.appendingPathComponent(recording.audioFilePath)
+            do {
+                if FileManager.default.fileExists(atPath: fileURL.path) {
+                    try FileManager.default.removeItem(at: fileURL)
+                    print("[RecordingListView] Deleted file: \(fileURL.path)")
+                }
+            } catch {
+                print("[RecordingListView] Failed to delete file: \(error)")
+            }
             modelContext.delete(recording)
         }
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            print("[RecordingListView] Failed to save context after deletion: \(error)")
+        }
     }
 }
 
