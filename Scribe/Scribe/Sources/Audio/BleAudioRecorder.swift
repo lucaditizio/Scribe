@@ -254,7 +254,7 @@ class BleAudioRecorder: NSObject {
             return false
         }
         
-        let assetWriterInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings, sourceFormatHint: formatDesc)
+        let assetWriterInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
         assetWriterInput.expectsMediaDataInRealTime = false
         
         guard assetWriter.canAdd(assetWriterInput) else {
