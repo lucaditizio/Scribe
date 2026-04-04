@@ -143,7 +143,8 @@ private struct ConnectionStatusCard: View {
 
                 Spacer()
 
-                if connectionManager.connectionState == .connected {
+                switch connectionManager.connectionState {
+                case .connected, .initialized, .bound:
                     Button("Disconnect") {
                         connectionManager.disconnect()
                     }
@@ -153,9 +154,11 @@ private struct ConnectionStatusCard: View {
                     .padding(.vertical, 6)
                     .background(Theme.scribeRed.opacity(0.12))
                     .clipShape(Capsule())
-                } else if case .connecting = connectionManager.connectionState {
+                case .connecting:
                     ProgressView()
                         .tint(Theme.scribeRed)
+                default:
+                    EmptyView()
                 }
             }
         }

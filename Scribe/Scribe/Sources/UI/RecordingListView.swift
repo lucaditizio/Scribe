@@ -99,8 +99,19 @@ struct RecordingListView: View {
                     }
                 }
                 
-                // Floating Record Context
-                VStack {
+                VStack(spacing: 12) {
+                    HStack(spacing: 6) {
+                        Image(systemName: connectionManager.connectionState == .connected || connectionManager.connectionState == .initialized || connectionManager.connectionState == .bound ? "antenna.radiowaves.left.and.right" : "mic")
+                            .font(.caption)
+                        Text(connectionManager.connectionState == .connected || connectionManager.connectionState == .initialized || connectionManager.connectionState == .bound ? "BLE Mic" : "Internal Mic")
+                            .font(.caption.weight(.medium))
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.gray.opacity(0.15))
+                    .clipShape(Capsule())
+                    
                     if isRecording {
                         Text(formatDuration(currentDuration))
                             .font(.system(.title, design: .monospaced).weight(.bold))
