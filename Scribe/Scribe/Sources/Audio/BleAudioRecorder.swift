@@ -198,56 +198,65 @@ class BleAudioRecorder: NSObject {
         let outputURL = RecordingsStorage.recordingsDirectory().appendingPathComponent(filename)
         
         do {
-            let wavData = createWAVFile(samples: samples, sampleRate: 16000)
-            try wavData.write(to: outputURL)
-            print("[BleAudioRecorder] Audio saved to: \(outputURL.path) (\(samples.count) samples, 16kHz Float32 WAV)")
+            let cafData = createCAFFile(samples: samples, sampleRate: 16000)
+            try cafData.write(to: outputURL)
+            print("[BleAudioRecorder] Audio saved to: \(outputURL.path) (\(samples.count) samples, 16kHz Float32 CAF)")
             return outputURL
         } catch {
-            print("[BleAudioRecorder] Failed to write WAV data: \(error)")
+            print("[BleAudioRecorder] Failed to write CAF data: \(error)")
             return nil
         }
     }
     
-    private func createWAVFile(samples: [Float], sampleRate: UInt32) -> Data {
+    private func createCAFFile(samples: [Float], sampleRate: Double) -> Data {
         let bytesPerSample = MemoryLayout<Float>.stride
-        let dataSize = UInt32(samples.count * bytesPerSample)
-        let byteRate = UInt32(sampleRate * UInt32(bytesPerSample))
+        let dataSize = UInt64(samples.count * bytesPerSample)
         
-        var wavData = Data()
+        var cafData = Data()
         
-        wavData.append("RIFF".data(using: .ascii)!)
-        wavData.append(UInt32(36 + dataSize).littleEndianBytes)
-        wavData.append("WAVE".data(using: .ascii)!)
+        cafData.append("caff".data(using: .ascii)!)
+        cafData.append(UInt16(1).bigEndianBytes)
+        cafData.append(UInt16(0).bigEndianBytes)
         
-        wavData.append("fmt ".data(using: .ascii)!)
-        wavData.append(UInt32(16).littleEndianBytes)
-        wavData.append(UInt16(3).littleEndianBytes)
-        wavData.append(UInt16(1).littleEndianBytes)
-        wavData.append(sampleRate.littleEndianBytes)
-        wavData.append(byteRate.littleEndianBytes)
-        wavData.append(UInt16(bytesPerSample).littleEndianBytes)
-        wavData.append(UInt16(32).littleEndianBytes)
+        cafData.append("desc".data(using: .ascii)!)
+        let descSize: UInt64 = 32
+        cafData.append(descSize.bigEndianBytes)
         
-        wavData.append("data".data(using: .ascii)!)
-        wavData.append(dataSize.littleEndianBytes)
+        cafData.append(UInt32(1819304813).bigEndianBytes)
+        cafData.append(UInt32(0).bigEndianBytes)
+        cafData.append(UInt32(sampleRate).bigEndianBytes)
+        cafData.append(UInt32(1).bigEndianBytes)
+        cafData.append(UInt32(1).bigEndianBytes)
+        cafData.append(UInt32(bytesPerSample).bigEndianBytes)
+        cafData.append(UInt32(1).bigEndianBytes)
+        
+        cafData.append("data".data(using: .ascii)!)
+        let dataChunkSize: UInt64 = dataSize + 4
+        cafData.append(dataChunkSize.bigEndianBytes)
+        cafData.append(UInt32(0).bigEndianBytes)
         
         let sampleData = Data(bytes: samples, count: Int(dataSize))
-        wavData.append(sampleData)
+        cafData.append(sampleData)
         
-        return wavData
+        return cafData
     }
     
     private func generateRecordingFilename() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
         let timestamp = formatter.string(from: Date())
-        return "Recording_\(timestamp).wav"
+        return "Recording_\(timestamp).caf"
     }
 }
 
 extension FixedWidthInteger {
     var littleEndianBytes: Data {
         var value = self.littleEndian
+        return Data(bytes: &value, count: MemoryLayout<Self>.size)
+    }
+    
+    var bigEndianBytes: Data {
+        var value = self.bigEndian
         return Data(bytes: &value, count: MemoryLayout<Self>.size)
     }
 }
