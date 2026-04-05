@@ -15,6 +15,7 @@ import SwiftUI
 
 struct DeviceSettingsView: View {
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.dismiss) private var dismiss
 
     // Services — plain stored properties, not @State.
     // @Observable handles change propagation automatically.
@@ -65,8 +66,15 @@ struct DeviceSettingsView: View {
         .navigationTitle("External Mic")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItem(placement: .navigationBarLeading) {
                 ScanButton(scanner: scanner)
+            }
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Done") {
+                    dismiss()
+                }
+                .foregroundStyle(Theme.scribeRed)
             }
         }
         .alert("Sync Error", isPresented: $showingError) {

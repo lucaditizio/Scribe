@@ -452,6 +452,12 @@ extension DeviceConnectionManager: CBPeripheralDelegate {
         
         addConnectionEvent(.slinkResponseReceived(packet.debugDescription))
         
+        // TODO: Implement hardware button detection
+        // if packet.command == 0x0206 {
+        //     handleHardwareButtonResponse(packet)
+        //     return
+        // }
+        
         // Check if this is an expected response
         guard let pending = pendingCommand else {
             print("[DeviceConnectionManager] Unsolicited SLink response received")

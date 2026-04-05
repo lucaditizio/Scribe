@@ -219,16 +219,17 @@ class BleAudioRecorder: NSObject {
         cafData.append(UInt16(0).bigEndianBytes)
         
         cafData.append("desc".data(using: .ascii)!)
-        let descSize: UInt64 = 32
+        let descSize: UInt64 = 40
         cafData.append(descSize.bigEndianBytes)
         
         cafData.append(UInt32(1819304813).bigEndianBytes)
-        cafData.append(UInt32(0).bigEndianBytes)
-        cafData.append(UInt32(sampleRate).bigEndianBytes)
-        cafData.append(UInt32(1).bigEndianBytes)
+        cafData.append(UInt32(41).bigEndianBytes)
+        cafData.append(sampleRate.bitPattern.bigEndianBytes)
         cafData.append(UInt32(1).bigEndianBytes)
         cafData.append(UInt32(bytesPerSample).bigEndianBytes)
+        cafData.append(UInt32(bytesPerSample).bigEndianBytes)
         cafData.append(UInt32(1).bigEndianBytes)
+        cafData.append(UInt32(32).bigEndianBytes)
         
         cafData.append("data".data(using: .ascii)!)
         let dataChunkSize: UInt64 = dataSize + 4

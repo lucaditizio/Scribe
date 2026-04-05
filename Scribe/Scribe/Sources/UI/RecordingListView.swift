@@ -88,14 +88,6 @@ struct RecordingListView: View {
                             connectionManager: connectionManager,
                             scanner: scanner
                         )
-                            .toolbar {
-                                ToolbarItem(placement: .navigationBarLeading) {
-                                    Button("Done") {
-                                        showingDeviceSettings = false
-                                    }
-                                    .foregroundStyle(Theme.scribeRed)
-                                }
-                            }
                     }
                 }
                 
@@ -103,7 +95,7 @@ struct RecordingListView: View {
                     HStack(spacing: 6) {
                         Image(systemName: connectionManager.connectionState == .connected || connectionManager.connectionState == .initialized || connectionManager.connectionState == .bound ? "antenna.radiowaves.left.and.right" : "mic")
                             .font(.caption)
-                        Text(connectionManager.connectionState == .connected || connectionManager.connectionState == .initialized || connectionManager.connectionState == .bound ? "BLE Mic" : "Internal Mic")
+                        Text(connectionManager.connectionState == .connected || connectionManager.connectionState == .initialized || connectionManager.connectionState == .bound ? "External Mic" : "Internal Mic")
                             .font(.caption.weight(.medium))
                     }
                     .foregroundStyle(.secondary)
