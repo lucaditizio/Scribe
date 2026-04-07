@@ -7,8 +7,8 @@ struct RecordingListView: View {
     @Environment(\.colorScheme) var colorScheme
     
     private let scanner: BluetoothDeviceScanner
-    private let connectionManager: DeviceConnectionManager
-    private let bleRecorder: BleAudioRecorder
+    @Bindable private var connectionManager: DeviceConnectionManager
+    @Bindable private var unifiedRecorder: UnifiedRecorder
     
     @State private var showingDeviceSettings = false
     @State private var currentDuration: TimeInterval = 0
@@ -17,10 +17,10 @@ struct RecordingListView: View {
     init() {
         let scanner = BluetoothDeviceScanner()
         let mgr = DeviceConnectionManager(scanner: scanner)
-        let recorder = BleAudioRecorder()
+        let recorder = UnifiedRecorder(connectionManager: mgr)
         self.scanner = scanner
         self.connectionManager = mgr
-        self.bleRecorder = recorder
+        self.unifiedRecorder = recorder
     }
     
     var body: some View {
@@ -84,7 +84,6 @@ struct RecordingListView: View {
                 .sheet(isPresented: $showingDeviceSettings) {
                     NavigationStack {
                         DeviceSettingsView(
-                            bleRecorder: bleRecorder,
                             connectionManager: connectionManager,
                             scanner: scanner
                         )
@@ -117,15 +116,15 @@ struct RecordingListView: View {
                     }
                     
                     RecordButtonView(
-                        bleRecorder: bleRecorder,
+                        unifiedRecorder: unifiedRecorder,
                         connectionManager: connectionManager,
                         currentDuration: $currentDuration,
                         isRecording: $isRecording
-                    ) { duration, fileURL in
-                        if let url = fileURL {
-                            saveRecording(duration: duration, fileURL: url)
+                    ) { result in
+                        if let result = result {
+                            saveRecording(result: result)
                         } else {
-                            print("[RecordingListView] Recording failed: fileURL is nil")
+                            print("[RecordingListView] Recording failed")
                         }
                     }
                 }
@@ -134,19 +133,21 @@ struct RecordingListView: View {
         }
     }
     
-    private func saveRecording(duration: TimeInterval, fileURL: URL) {
-        let filename = fileURL.lastPathComponent
+    private func saveRecording(result: RecordingOutput) {
+        let filename = result.url.lastPathComponent
+        // Handle both .m4a and .caf extensions for ID extraction
         let id = filename.replacingOccurrences(of: ".m4a", with: "")
-        
+            .replacingOccurrences(of: ".caf", with: "")
+
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm"
         let timestamp = formatter.string(from: Date())
         let title = "Recording \(timestamp)"
-        
+
         let newRecording = Recording(
             id: id,
             title: title,
-            duration: duration,
+            duration: result.duration,
             audioFilePath: filename,
             categoryTag: "#NOTE"
         )

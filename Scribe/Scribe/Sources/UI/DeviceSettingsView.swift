@@ -24,13 +24,11 @@ struct DeviceSettingsView: View {
     // alongside connectionManager — guaranteeing one shared peripheral map.
     private let scanner: BluetoothDeviceScanner
     private let connectionManager: DeviceConnectionManager
-    @Bindable var bleRecorder: BleAudioRecorder
 
     @State private var showingError = false
     @State private var errorMessage = ""
 
-    init(bleRecorder: BleAudioRecorder, connectionManager: DeviceConnectionManager, scanner: BluetoothDeviceScanner) {
-        self.bleRecorder = bleRecorder
+    init(connectionManager: DeviceConnectionManager, scanner: BluetoothDeviceScanner) {
         self.connectionManager = connectionManager
         self.scanner = scanner
     }
@@ -43,13 +41,7 @@ struct DeviceSettingsView: View {
                 ConnectionStatusCard(connectionManager: connectionManager)
                     .scribeCardStyle(scheme: colorScheme)
 
-                // ── 2. Recording Status Card ──────────────────────────────
-                if bleRecorder.state == .recording {
-                    RecordingStatusCard(bleRecorder: bleRecorder)
-                        .scribeCardStyle(scheme: colorScheme)
-                }
-
-                // ── 3. Device List Card ───────────────────────────────────
+                // ── 2. Device List Card ───────────────────────────────────
                 DeviceListCard(
                     scanner: scanner,
                     connectionManager: connectionManager,
@@ -198,59 +190,6 @@ private struct ConnectionStatusCard: View {
         case .failed:        return Theme.scribeRed
         case .disconnected:  return Color.secondary
         }
-    }
-}
-
-// MARK: - Recording Status Card
-
-private struct RecordingStatusCard: View {
-    @Bindable var bleRecorder: BleAudioRecorder
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label("Recording", systemImage: "waveform")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-            
-            HStack(spacing: 12) {
-                Circle()
-                    .fill(Theme.scribeRed)
-                    .frame(width: 10, height: 10)
-                    .shadow(color: Theme.scribeRed.opacity(0.6), radius: 4)
-                    .opacity(bleRecorder.state == .recording ? 1 : 0.3)
-                    .animation(
-                        bleRecorder.state == .recording
-                            ? Animation.easeInOut(duration: 0.8).repeatForever(autoreverses: true)
-                            : .default,
-                        value: bleRecorder.state
-                    )
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Recording in Progress")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                    
-                    Text(formatDuration(bleRecorder.currentDuration))
-                        .font(.system(.title3, design: .monospaced).weight(.medium))
-                        .foregroundStyle(Theme.scribeRed)
-                }
-                
-                Spacer()
-                
-                Image(systemName: "mic.fill")
-                    .font(.title2)
-                    .foregroundStyle(Theme.scribeRed.opacity(0.8))
-            }
-        }
-    }
-    
-    private func formatDuration(_ duration: TimeInterval) -> String {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.minute, .second]
-        formatter.unitsStyle = .positional
-        formatter.zeroFormattingBehavior = .pad
-        return formatter.string(from: duration) ?? "00:00"
     }
 }
 
@@ -411,7 +350,6 @@ private struct RSSIBadge: View {
     let connectionManager = DeviceConnectionManager(scanner: scanner)
     NavigationStack {
         DeviceSettingsView(
-            bleRecorder: BleAudioRecorder(),
             connectionManager: connectionManager,
             scanner: scanner
         )

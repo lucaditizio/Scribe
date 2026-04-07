@@ -88,7 +88,7 @@ class AudioRecorder: NSObject, AVAudioRecorderDelegate {
         let audioSession = AVAudioSession.sharedInstance()
         audioSession.requestRecordPermission { [weak self] allowed in
             guard allowed, let self = self else {
-                print("Recording permission denied")
+                print("[AudioRecorder] Recording permission denied")
                 return
             }
             
@@ -97,13 +97,22 @@ class AudioRecorder: NSObject, AVAudioRecorderDelegate {
                     try audioSession.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth, .defaultToSpeaker])
                     try audioSession.setActive(true)
                 } catch {
-                    print("Failed to activate audio session: \(error)")
+                    print("[AudioRecorder] Failed to activate audio session: \(error)")
                     return
                 }
                 
-                self.currentRecordingSessionID = UUID().uuidString
+                // Only set session ID if not already set by caller
+                if self.currentRecordingSessionID == nil {
+                    self.currentRecordingSessionID = UUID().uuidString
+                }
+                
+                guard let sessionID = self.currentRecordingSessionID else {
+                    print("[AudioRecorder] No session ID available")
+                    return
+                }
+                
                 let documentPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                let audioFilename = documentPath.appendingPathComponent("\(self.currentRecordingSessionID!).m4a")
+                let audioFilename = documentPath.appendingPathComponent("\(sessionID).m4a")
                 
                 // Scribe constraints: 48kHz mono
                 let settings: [String: Any] = [
@@ -124,8 +133,9 @@ class AudioRecorder: NSObject, AVAudioRecorderDelegate {
                         self.isRecording = true
                         self.currentTime = 0
                         self.startTimer()
+                        print("[AudioRecorder] Recording started: \(sessionID)")
                     } else {
-                        print("Recording failed to start even though permissions were granted.")
+                        print("[AudioRecorder] Recording failed to start even though permissions were granted.")
                         do { try audioSession.setActive(false) } catch {}
                     }
                 } catch {

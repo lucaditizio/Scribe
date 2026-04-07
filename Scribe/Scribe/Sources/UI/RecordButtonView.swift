@@ -1,21 +1,12 @@
 import SwiftUI
 
 struct RecordButtonView: View {
-    @Bindable var bleRecorder: BleAudioRecorder
+    @Bindable var unifiedRecorder: UnifiedRecorder
     let connectionManager: DeviceConnectionManager
     @Binding var currentDuration: TimeInterval
     @Binding var isRecording: Bool
-    var onRecordingFinished: (TimeInterval, URL?) -> Void
-    
-    private var isConnected: Bool {
-        switch connectionManager.connectionState {
-        case .connected, .initialized, .bound:
-            return true
-        default:
-            return false
-        }
-    }
-    
+    var onRecordingFinished: (RecordingOutput?) -> Void
+
     var body: some View {
         Button(action: toggleRecording) {
             ZStack {
@@ -28,12 +19,12 @@ struct RecordButtonView: View {
                         isRecording ? Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: false) : .default,
                         value: isRecording
                     )
-                
+
                 Circle()
                     .fill(isRecording ? Theme.scribeRed.opacity(0.8) : Theme.scribeRed)
                     .frame(width: 70, height: 70)
                     .shadow(color: Theme.scribeRed.opacity(0.5), radius: 10, x: 0, y: 5)
-                
+
                 if isRecording {
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .fill(Color.white)
@@ -45,26 +36,25 @@ struct RecordButtonView: View {
                 }
             }
         }
-        .opacity(isConnected ? 1.0 : 0.5)
-        .onChange(of: bleRecorder.state) { _, newState in
-            isRecording = (newState == .recording)
+        .opacity(unifiedRecorder.isAvailable ? 1.0 : 0.5)
+        .disabled(!unifiedRecorder.isAvailable)
+        .onChange(of: unifiedRecorder.isRecording) { _, newState in
+            isRecording = newState
         }
-        .onChange(of: bleRecorder.currentDuration) { _, newDuration in
+        .onChange(of: unifiedRecorder.currentDuration) { _, newDuration in
             currentDuration = newDuration
         }
     }
-    
+
     private func toggleRecording() {
-        switch bleRecorder.state {
-        case .idle:
-            bleRecorder.startRecording()
-        case .recording:
-            let result = bleRecorder.stopRecording()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                onRecordingFinished(result.duration, result.url)
+        if unifiedRecorder.isRecording {
+            unifiedRecorder.stopRecording { result in
+                if let result = result {
+                    onRecordingFinished(result)
+                }
             }
-        case .stopped:
-            bleRecorder.startRecording()
+        } else {
+            unifiedRecorder.startRecording()
         }
     }
 }

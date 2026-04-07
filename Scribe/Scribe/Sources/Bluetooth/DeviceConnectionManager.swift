@@ -669,4 +669,5 @@ extension DeviceConnectionManager: CBPeripheralDelegate {
 
 extension Notification.Name {
     static let audioCharacteristicDidUpdate = Notification.Name("com.scribe.audioCharacteristicDidUpdate")
+    static let connectionStateDidChange = Notification.Name("com.scribe.connectionStateDidChange")
 }
