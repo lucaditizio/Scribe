@@ -17,31 +17,30 @@ struct DeviceSettingsView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) private var dismiss
 
-    // Services — plain stored properties, not @State.
+    // Services — DeviceSettingsView creates its OWN instances.
     // @Observable handles change propagation automatically.
-    // IMPORTANT: all three services must share the SAME scanner instance.
-    // scanner is declared without a default value so init() can assign it
-    // alongside connectionManager — guaranteeing one shared peripheral map.
+    // IMPORTANT: scanner and connectionManager are created here so the view
+    // owns them directly — this is required for @Observable to work correctly.
     private let scanner: BluetoothDeviceScanner
     private let connectionManager: DeviceConnectionManager
 
     @State private var showingError = false
     @State private var errorMessage = ""
 
-    init(connectionManager: DeviceConnectionManager, scanner: BluetoothDeviceScanner) {
-        self.connectionManager = connectionManager
+    init() {
+        let scanner = BluetoothDeviceScanner()
+        let mgr = DeviceConnectionManager(scanner: scanner)
         self.scanner = scanner
+        self.connectionManager = mgr
     }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
 
-                // ── 1. Connection Status Card ─────────────────────────────
                 ConnectionStatusCard(connectionManager: connectionManager)
                     .scribeCardStyle(scheme: colorScheme)
 
-                // ── 2. Device List Card ───────────────────────────────────
                 DeviceListCard(
                     scanner: scanner,
                     connectionManager: connectionManager,
@@ -112,14 +111,12 @@ private struct ConnectionStatusCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            // Section header
             Label("Connection", systemImage: "dot.radiowaves.left.and.right")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
 
             HStack(spacing: 12) {
-                // Status indicator dot
                 Circle()
                     .fill(statusColor)
                     .frame(width: 10, height: 10)
@@ -346,13 +343,8 @@ private struct RSSIBadge: View {
 // MARK: - Preview
 
 #Preview {
-    let scanner = BluetoothDeviceScanner()
-    let connectionManager = DeviceConnectionManager(scanner: scanner)
     NavigationStack {
-        DeviceSettingsView(
-            connectionManager: connectionManager,
-            scanner: scanner
-        )
+        DeviceSettingsView()
     }
     .preferredColorScheme(.dark)
 }

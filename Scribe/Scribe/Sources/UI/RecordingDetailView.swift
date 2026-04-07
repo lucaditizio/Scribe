@@ -277,9 +277,11 @@ struct RecordingDetailView: View {
     
     private func deleteRecording() {
         if audioPlayer.isPlaying { audioPlayer.togglePlayback() }
+
         let docPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let audioURL = docPath.appendingPathComponent(recording.audioFilePath)
         try? FileManager.default.removeItem(at: audioURL)
+
         modelContext.delete(recording)
         dismiss()
     }

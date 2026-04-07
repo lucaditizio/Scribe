@@ -7,7 +7,7 @@ struct RecordingListView: View {
     @Environment(\.colorScheme) var colorScheme
     
     private let scanner: BluetoothDeviceScanner
-    @Bindable private var connectionManager: DeviceConnectionManager
+    private let connectionManager: DeviceConnectionManager
     @Bindable private var unifiedRecorder: UnifiedRecorder
     
     @State private var showingDeviceSettings = false
@@ -83,10 +83,7 @@ struct RecordingListView: View {
                 }
                 .sheet(isPresented: $showingDeviceSettings) {
                     NavigationStack {
-                        DeviceSettingsView(
-                            connectionManager: connectionManager,
-                            scanner: scanner
-                        )
+                        DeviceSettingsView()
                     }
                 }
                 
@@ -168,10 +165,12 @@ struct RecordingListView: View {
     }
     
     private func deleteRecordings(offsets: IndexSet) {
-        let recordingsPath = RecordingsStorage.recordingsDirectory()
+        let documentPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        
         for index in offsets {
             let recording = recordings[index]
-            let fileURL = recordingsPath.appendingPathComponent(recording.audioFilePath)
+            let fileURL = documentPath.appendingPathComponent(recording.audioFilePath)
+            
             do {
                 if FileManager.default.fileExists(atPath: fileURL.path) {
                     try FileManager.default.removeItem(at: fileURL)
@@ -180,6 +179,7 @@ struct RecordingListView: View {
             } catch {
                 print("[RecordingListView] Failed to delete file: \(error)")
             }
+            
             modelContext.delete(recording)
         }
         do {

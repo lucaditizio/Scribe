@@ -260,18 +260,9 @@ class UnifiedRecorder: NSObject {
     private func saveBLEAudio(samples: [Float]) -> URL? {
         guard !samples.isEmpty else { return nil }
         
-        do {
-            try RecordingsStorage.ensureRecordingsDirectoryExists()
-        } catch {
-            print("[UnifiedRecorder] Failed to create recordings directory: \(error)")
-            return nil
-        }
-        
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
-        let timestamp = formatter.string(from: Date())
-        let filename = "Recording_\(timestamp).caf"
-        let outputURL = RecordingsStorage.recordingsDirectory().appendingPathComponent(filename)
+        let sessionID = UUID().uuidString
+        let documentPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let outputURL = documentPath.appendingPathComponent("\(sessionID).caf")
         
         do {
             let cafData = createCAFFile(samples: samples, sampleRate: 16000)
