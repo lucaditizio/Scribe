@@ -17,21 +17,12 @@ struct DeviceSettingsView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) private var dismiss
 
-    // Services — DeviceSettingsView creates its OWN instances.
-    // @Observable handles change propagation automatically.
-    // IMPORTANT: scanner and connectionManager are created here so the view
-    // owns them directly — this is required for @Observable to work correctly.
-    private let scanner: BluetoothDeviceScanner
-    private let connectionManager: DeviceConnectionManager
+    private let connectionManager = DeviceConnectionManager.shared
 
     @State private var showingError = false
     @State private var errorMessage = ""
 
     init() {
-        let scanner = BluetoothDeviceScanner()
-        let mgr = DeviceConnectionManager(scanner: scanner)
-        self.scanner = scanner
-        self.connectionManager = mgr
     }
 
     var body: some View {
@@ -42,7 +33,7 @@ struct DeviceSettingsView: View {
                     .scribeCardStyle(scheme: colorScheme)
 
                 DeviceListCard(
-                    scanner: scanner,
+                    scanner: connectionManager.scanner,
                     connectionManager: connectionManager,
                     onDeviceSelected: { connectionManager.connect(to: $0) }
                 )
@@ -58,7 +49,7 @@ struct DeviceSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                ScanButton(scanner: scanner)
+                ScanButton(scanner: connectionManager.scanner)
             }
             
             ToolbarItem(placement: .navigationBarTrailing) {

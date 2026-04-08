@@ -1,39 +1,107 @@
-[DeviceConnectionManager] Heartbeat sent
-[DeviceConnectionManager] Heartbeat sent
-[DeviceConnectionManager] Heartbeat sent
-[DeviceConnectionManager] Heartbeat sent
+[OpusAudioDecoder] Initialized with sampleRate=16000, channels=1
+[BluetoothDeviceScanner] Bluetooth powered on — ready to scan
+[BluetoothDeviceScanner] Scanning started
+[BluetoothDeviceScanner] Scanning stopped
+[BluetoothDeviceScanner] Scanning started
+[BluetoothDeviceScanner] Scanning stopped
+[DeviceConnectionManager] Connecting to LA518
+[OpusAudioDecoder] Initialized with sampleRate=16000, channels=1
+[BluetoothDeviceScanner] Bluetooth powered on — ready to scan
+[BluetoothDeviceScanner] → Forwarding didConnect to delegate
+[DeviceConnectionManager] Connected
+[DeviceConnectionManager] Discovering services...
+[DeviceConnectionManager] Found 4 services
+[DeviceConnectionManager] Battery: 1 chars
+[DeviceConnectionManager] Battery char found
+[DeviceConnectionManager] Waiting for 0 notifications to enable...
+[DeviceConnectionManager] E49A3001-F69A-11E8-8EB2-F2801F1B9FD1: 2 chars
+[DeviceConnectionManager] Audio stream char found (E49A3003)
+[DeviceConnectionManager] Waiting for 0 notifications to enable...
+[DeviceConnectionManager] E0E0: 2 chars
+[DeviceConnectionManager] Waiting for 0 notifications to enable...
+[DeviceConnectionManager] F0F0: 4 chars
+[DeviceConnectionManager] Command write char found (F0F1)
+[DeviceConnectionManager] File transfer char found (F0F2)
+[DeviceConnectionManager] File transfer char 2 found (F0F3)
+[DeviceConnectionManager] File transfer char 3 found (F0F4)
+[DeviceConnectionManager] Subscribing to F0F2 (notifications)
+[DeviceConnectionManager] Subscribing to F0F3
+[DeviceConnectionManager] Subscribing to F0F4
+[DeviceConnectionManager] Waiting for 3 notifications to enable...
+[DeviceConnectionManager] Notifications enabled for F0F2
+[DeviceConnectionManager] Pending subscriptions: 2
+[DeviceConnectionManager] F0F2: 1 descriptors
+[DeviceConnectionManager] Notifications enabled for F0F3
+[DeviceConnectionManager] Pending subscriptions: 1
+[DeviceConnectionManager] F0F3: 1 descriptors
+[DeviceConnectionManager] Notifications enabled for F0F4
+[DeviceConnectionManager] Pending subscriptions: 0
+[DeviceConnectionManager] All notifications enabled, starting SLink initialization...
+[DeviceConnectionManager] F0F4: 1 descriptors
+[DeviceConnectionManager] Starting SLink initialization sequence...
+[SLink TX] Step 1/8: Handshake(0x0202) -> [80 08 02 02 00 5D 02]
+[SLink RX] Raw data from F0F2: [80 08 02 02 10 31 32 39 39 35 30 00 00 00 00 00 00 00 00 00 00 1A 99]
+[SLink RX] Response: [80 08 02 02 10 31 32 39 39 35 30 00 00 00 00 00 00 00 00 00 00 F2 A1]
+[DeviceConnectionManager] Handshake acknowledged
+[SLink TX] Step 2/8: SendSerial(0x0203) -> [80 08 02 03 11 31 32 39 39 35 30 00 00 00 00 00 00 00 00 00 00 00 F1 A2]
+[SLink RX] Raw data from F0F2: [80 08 02 03 01 00 0E 29]
+[SLink RX] Response: [80 08 02 03 01 00 5C 03]
+[DeviceConnectionManager] Serial acknowledged
+[SLink TX] Step 3/8: GetDeviceInfo(0x0201) -> [80 08 02 01 00 5D 01]
+[SLink RX] Raw data from F0F2: [80 08 02 01 0F 35 31 38 41 30 31 42 30 32 33 30 30 31 30 34 B7 50]
+[SLink RX] Response: [80 08 02 01 0F 35 31 38 41 30 31 42 30 32 33 30 30 31 30 34 27 A7]
+[DeviceConnectionManager] Device serial from response: 518A01B02300104
+[SLink TX] Step 4/8: Configure(0x0204) -> [80 08 02 04 06 1A 04 04 0E 29 32 13 4B]
+[SLink RX] Raw data from F0F2: [80 08 02 04 01 00 BF E8]
+[SLink RX] Response: [80 08 02 04 01 00 5C 04]
+[DeviceConnectionManager] Configuration acknowledged
+[SLink TX] Step 5/8: StatusControl(0x0205) -> [80 08 02 05 00 5D 05]
 [SLink RX] Raw data from F0F2: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 23 CE]
 [SLink RX] Response: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 80 A9]
+[DeviceConnectionManager] Status control acknowledged
+[SLink TX] Step 6/8: Command18(0x0218) -> [80 08 02 18 01 01 5C 19]
+[SLink RX] Raw data from F0F2: [80 08 02 18 01 00 7E 2E]
+[SLink RX] Response: [80 08 02 18 01 00 5C 18]
+[DeviceConnectionManager] Init command 5 acknowledged
+[SLink TX] Step 7/8: Command0A(0x020A) -> [80 08 02 0A 00 5D 0A]
+[SLink RX] Raw data from F0F2: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 31 35 38 00 00 8C 2E 01 20 19]
+[SLink RX] Response: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 31 35 38 00 00 8C 2E 01 5D A3]
+[DeviceConnectionManager] Init command 6 acknowledged
+[SLink RX] Raw data from F0F2: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 31 35 33 00 00 4A 5A 01 E6 5F]
+[SLink RX] Response: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 31 35 33 00 00 4A 5A 01 9F CA]
 [DeviceConnectionManager] Unsolicited SLink response received
-[BleAudioRecorder] Recording started
-[DeviceConnectionManager] Heartbeat sent
-[SLink RX] Raw data from F0F2: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 23 CE]
-[SLink RX] Response: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 80 A9]
+[SLink RX] Raw data from F0F2: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 31 35 34 00 00 76 3E 01 0D 24]
+[SLink RX] Response: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 31 35 34 00 00 76 3E 01 B3 AF]
 [DeviceConnectionManager] Unsolicited SLink response received
-[OpusAudioDecoder] Decoded 59 bytes -> 40 samples
-[BleAudioRecorder] Recording stopped, encoding 40 samples...
-[BleAudioRecorder] Audio saved to: /var/mobile/Containers/Data/Application/5A493AF7-D35A-43BF-B0E7-AB13E26A7DFD/Documents/Recordings/Recording_2026-04-04_22-18-13.caf (40 samples, 16kHz Float32 CAF)
-[DeviceConnectionManager] Heartbeat sent
-[SLink RX] Raw data from F0F2: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 23 CE]
-[SLink RX] Response: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 80 A9]
+[SLink RX] Raw data from F0F2: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 31 35 35 00 00 4C 1A 01 37 F8]
+[SLink RX] Response: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 31 35 35 00 00 4C 1A 01 9D 8C]
 [DeviceConnectionManager] Unsolicited SLink response received
-[DeviceConnectionManager] Heartbeat sent
-[SLink RX] Raw data from F0F2: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 23 CE]
-[SLink RX] Response: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 80 A9]
+[SLink RX] Raw data from F0F2: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 32 30 35 00 00 43 A0 01 61 8E]
+[SLink RX] Response: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 32 30 35 00 00 43 A0 01 EA 13]
 [DeviceConnectionManager] Unsolicited SLink response received
-[DeviceConnectionManager] Heartbeat sent
-[SLink RX] Raw data from F0F2: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 23 CE]
-[SLink RX] Response: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 80 A9]
+[SLink RX] Raw data from F0F2: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 31 35 37 00 00 57 5C 01 74 7D]
+[SLink RX] Response: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 31 35 37 00 00 57 5C 01 92 D0]
 [DeviceConnectionManager] Unsolicited SLink response received
-Load Error [NSOSStatusErrorDomain - 2003334207]: The operation couldn’t be completed. (OSStatus error 2003334207.)
-[DeviceConnectionManager] Heartbeat sent
-[SLink RX] Raw data from F0F2: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 23 CE]
-[SLink RX] Response: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 80 A9]
+[SLink RX] Raw data from F0F2: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 32 32 35 00 00 3F B0 01 8E 56]
+[SLink RX] Response: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 32 32 35 00 00 3F B0 01 EC 23]
 [DeviceConnectionManager] Unsolicited SLink response received
-[DeviceConnectionManager] Heartbeat sent
-[SLink RX] Raw data from F0F2: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 23 CE]
-[SLink RX] Response: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 80 A9]
+[SLink RX] Raw data from F0F2: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 33 30 31 00 00 3E 08 01 4E 1E]
+[SLink RX] Response: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 33 30 31 00 00 3E 08 01 F0 78]
 [DeviceConnectionManager] Unsolicited SLink response received
+[SLink RX] Raw data from F0F2: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 32 31 39 00 00 5A AA 01 A6 E5]
+[SLink RX] Response: [80 08 02 0A 14 00 32 30 32 36 30 34 30 34 31 34 34 32 31 39 00 00 5A AA 01 92 21]
+[DeviceConnectionManager] Unsolicited SLink response received
+[SLink RX] Raw data from F0F2: [80 08 02 0A 01 02 5F EA]
+[SLink RX] Response: [80 08 02 0A 01 02 5C 0C]
+[DeviceConnectionManager] Unsolicited SLink response received
+[SLink TX] Step 8/8: Command17(0x0217) -> [80 08 02 17 01 00 5C 17]
+[SLink RX] Raw data from F0F2: [80 08 02 17 01 00 4E 2D]
+[SLink RX] Response: [80 08 02 17 01 00 5C 17]
+[DeviceConnectionManager] Init command 7 acknowledged
+[DeviceConnectionManager] Initialization sequence complete!
+[DeviceConnectionManager] Subscribed to audio stream (E49A3003)
+[DeviceConnectionManager] Notifications enabled for E49A3003-F69A-11E8-8EB2-F2801F1B9FD1
+[DeviceConnectionManager] Pending subscriptions: 0
 [DeviceConnectionManager] Heartbeat sent
 [SLink RX] Raw data from F0F2: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 23 CE]
 [SLink RX] Response: [80 08 02 05 34 00 00 E6 8E 00 00 E6 8C 00 64 00 01 00 03 01 01 FF 78 69 6E 6B 5F 74 65 73 74 00 00 00 00 00 00 00 00 00 00 00 00 1E 00 FF 03 00 00 00 00 00 00 00 00 00 00 80 A9]

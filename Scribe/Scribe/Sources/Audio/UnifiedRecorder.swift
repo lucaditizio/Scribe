@@ -37,16 +37,15 @@ class UnifiedRecorder: NSObject {
     var currentSource: RecordingSource = .internalMic
     
     private let internalRecorder = AudioRecorder()
-    private let connectionManager: DeviceConnectionManager
+    private let connectionManager = DeviceConnectionManager.shared
     private var audioStreamReceiver: AudioStreamReceiver?
     
     private var durationTimer: Timer?
     private var recordingStartTime: Date?
     private var bleAudioBuffer: [Float] = []
     
-    init(connectionManager: DeviceConnectionManager) {
-        self.connectionManager = connectionManager
-        self.audioStreamReceiver = AudioStreamReceiver(connectionManager: connectionManager)
+    override init() {
+        self.audioStreamReceiver = AudioStreamReceiver(connectionManager: .shared)
         super.init()
         
         updateSourceBasedOnConnection()

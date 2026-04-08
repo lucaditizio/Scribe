@@ -48,11 +48,15 @@ public struct ConnectionEvent: Equatable {
 @Observable
 public class DeviceConnectionManager: NSObject, ScannerConnectionDelegate {
 
+    public static let shared = DeviceConnectionManager()
+
     private var peripheral: CBPeripheral?
     private var centralManager: CBCentralManager!
     private let bleQueue = DispatchQueue(label: "com.scribe.ble.connection", qos: .userInitiated)
+    private let scanner = BluetoothDeviceScanner()
 
-    weak var scanner: BluetoothDeviceScanner?
+    public var scanner: BluetoothDeviceScanner { _scanner }
+    private let _scanner = BluetoothDeviceScanner()
 
     // Characteristics
     internal var audioStreamCharacteristic: CBCharacteristic?
@@ -90,8 +94,7 @@ public class DeviceConnectionManager: NSObject, ScannerConnectionDelegate {
     // Device serial from capture
     private let deviceSerial = "129950"
 
-    public init(scanner: BluetoothDeviceScanner) {
-        self.scanner = scanner
+    private override init() {
         super.init()
         self.centralManager = scanner.centralManager
         scanner.connectionDelegate = self

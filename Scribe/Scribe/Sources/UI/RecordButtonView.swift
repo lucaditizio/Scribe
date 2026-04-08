@@ -2,7 +2,6 @@ import SwiftUI
 
 struct RecordButtonView: View {
     @Bindable var unifiedRecorder: UnifiedRecorder
-    let connectionManager: DeviceConnectionManager
     @Binding var currentDuration: TimeInterval
     @Binding var isRecording: Bool
     var onRecordingFinished: (RecordingOutput?) -> Void

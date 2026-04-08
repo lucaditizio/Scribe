@@ -6,21 +6,14 @@ struct RecordingListView: View {
     @Query(sort: \Recording.createdAt, order: .reverse) private var recordings: [Recording]
     @Environment(\.colorScheme) var colorScheme
     
-    private let scanner: BluetoothDeviceScanner
-    private let connectionManager: DeviceConnectionManager
-    @Bindable private var unifiedRecorder: UnifiedRecorder
+    private let unifiedRecorder: UnifiedRecorder
     
     @State private var showingDeviceSettings = false
     @State private var currentDuration: TimeInterval = 0
     @State private var isRecording = false
     
     init() {
-        let scanner = BluetoothDeviceScanner()
-        let mgr = DeviceConnectionManager(scanner: scanner)
-        let recorder = UnifiedRecorder(connectionManager: mgr)
-        self.scanner = scanner
-        self.connectionManager = mgr
-        self.unifiedRecorder = recorder
+        self.unifiedRecorder = UnifiedRecorder()
     }
     
     var body: some View {
@@ -89,9 +82,9 @@ struct RecordingListView: View {
                 
                 VStack(spacing: 12) {
                     HStack(spacing: 6) {
-                        Image(systemName: connectionManager.connectionState == .connected || connectionManager.connectionState == .initialized || connectionManager.connectionState == .bound ? "antenna.radiowaves.left.and.right" : "mic")
+                        Image(systemName: DeviceConnectionManager.shared.connectionState == .connected || DeviceConnectionManager.shared.connectionState == .initialized || DeviceConnectionManager.shared.connectionState == .bound ? "antenna.radiowaves.left.and.right" : "mic")
                             .font(.caption)
-                        Text(connectionManager.connectionState == .connected || connectionManager.connectionState == .initialized || connectionManager.connectionState == .bound ? "External Mic" : "Internal Mic")
+                        Text(DeviceConnectionManager.shared.connectionState == .connected || DeviceConnectionManager.shared.connectionState == .initialized || DeviceConnectionManager.shared.connectionState == .bound ? "External Mic" : "Internal Mic")
                             .font(.caption.weight(.medium))
                     }
                     .foregroundStyle(.secondary)
@@ -114,7 +107,6 @@ struct RecordingListView: View {
                     
                     RecordButtonView(
                         unifiedRecorder: unifiedRecorder,
-                        connectionManager: connectionManager,
                         currentDuration: $currentDuration,
                         isRecording: $isRecording
                     ) { result in
